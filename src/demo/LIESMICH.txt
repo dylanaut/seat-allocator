@@ -1,0 +1,27 @@
+Seat Allocator - Demo
+=====================
+
+Eigenständige Demo-Anwendung mit eingebetteter H2-Datenbank und Testdaten (Wagen W1, ICE 101,
+Hamburg - Hannover - Frankfurt - München). Die Datenbank liegt im Arbeitsspeicher und wird bei jedem Start
+neu angelegt; Reservierungen gehen beim Beenden verloren.
+
+Voraussetzung: Java 21 oder neuer (JRE reicht).
+
+Starten
+  macOS / Linux:  ./start.sh
+  Windows:        start.cmd   (Doppelklick oder in der Eingabeaufforderung)
+
+Der Browser öffnet http://localhost:8080/ (Reservierungen) und http://localhost:8080/szenarien.html (Szenarien).
+Beenden mit Strg+C.
+
+Optionen (Umgebungsvariablen)
+  PORT=9090       anderer Port
+  NO_BROWSER=1    Browser nicht automatisch öffnen
+  JAVA_HOME       zu verwendende Java-Installation
+
+Weitere Quarkus-Einstellungen lassen sich als Argumente anhängen, zum Beispiel
+  ./start.sh -Dquarkus.http.host=0.0.0.0     (Zugriff aus dem Netz; die Demo hat keine Anmeldung)
+
+Der Ordner "szenarien" enthält gespeicherte Szenarien (JSON-Dateien); er wird relativ zu diesem Verzeichnis gelesen.
+
+macOS: Wird start.sh nach dem Entpacken nicht ausgeführt, hilft "chmod +x start.sh".

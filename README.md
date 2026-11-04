@@ -39,11 +39,29 @@ Dokumentation als Artefakt `dokumentation` an den Lauf.
 
 3. `.github/workflows/release.yml` setzt die Version aus dem Tag (das POM bleibt unverändert), führt Build und Tests aus
    und legt das GitHub Release `1.0.0` mit diesen Dateien an:
-   - `seat-allocator-1.0.0.zip` (Anwendung als Quarkus-Verteilung samt Beispiel-Szenarien)
+   - `seat-allocator-1.0.0.zip` (Anwendung als Quarkus-Verteilung samt Beispiel-Szenarien, braucht PostgreSQL)
+   - `seat-allocator-demo-1.0.0.zip` (eigenständige Demo mit H2 und Testdaten, siehe unten)
    - `seat-allocator-1.0.0.pdf` und `seat-allocator-1.0.0.html` (Dokumentation)
 
 Tags mit Suffix (z. B. `v1.1.0-rc.1`) werden als Vorabversion veröffentlicht. Über *Actions > Release > Run workflow*
 lässt sich ein Probelauf ohne Release starten; die Dateien liegen dann als Workflow-Artefakt vor.
+
+## Demo (ohne Datenbank und Docker)
+
+Jedes Release enthält `seat-allocator-demo-<version>.zip`: ein plattformunabhängiges Uber-Jar mit eingebetteter
+H2-Datenbank und den Testdaten aus `import.sql` sowie Startskripten. Es genügt ein Java 21 (JRE):
+
+```shell
+unzip seat-allocator-demo-1.0.0.zip && cd seat-allocator-demo-1.0.0
+./start.sh          # macOS, Linux
+start.cmd           # Windows
+```
+
+Der Browser öffnet `http://localhost:8080/`. Die Datenbank liegt im Arbeitsspeicher und wird bei jedem Start neu
+angelegt, Optionen (`PORT`, `NO_BROWSER`) stehen in der beiliegenden `LIESMICH.txt`. Selbst bauen:
+`mvn package -Pdemo` erzeugt `target/seat-allocator-demo-<version>.zip`. Das Profil `quarkus.profile=demo` (siehe
+`application.properties`) schaltet den Datenbanktyp beim Build auf H2 um. Vor dem Veröffentlichen testet der
+Release-Workflow die Demo auf Linux, macOS und Windows.
 
 ## Anwendung aus dem Release starten
 
