@@ -628,12 +628,6 @@ S --> R: Anzahl gelöschter Zeilen
 
 Fehlerantworten haben die Form `{"fehler": "..."}` (siehe `ApiExceptionMapper`).
 
-[source,java]
-.SitzplatzResource.java
-----
-include::../java/org/example/train/resource/SitzplatzResource.java[]
-----
-
 == Concurrency-Strategien & Lock-Handling
 
 Zur Vermeidung von Überbuchungen (Double Bookings) und Inkonsistenzen bei parallelen Anfragen wurden drei Ansätze evaluiert:
