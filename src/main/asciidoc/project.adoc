@@ -7,6 +7,14 @@
 :source-highlighter: rouge
 :icons: font
 :stem: latexmath
+:lang: de
+:chapter-signifier: Kapitel
+:appendix-caption: Anhang
+:toc-title: Inhaltsverzeichnis
+:table-caption: Tabelle
+:listing-caption: Listing
+:figure-caption: Abbildung
+:version-label: Version
 
 == Übersicht & Problemstellung
 
@@ -43,22 +51,22 @@ Jeder Wagen hat neben den Sitzplätzen (2+2 Bestuhlung) zwei Rollstuhlplätze un
 [source,text]
 ----
               Eingehende Anfrage
-                      │
-                      ▼
-┌────────────────────────────────────────────────────────┐
-│  Stufe 1: Kontingent- und Blockierungslogik (Filter)   │
-│  - Gruppenkontingente bis T_deadline reservieren       │
-│  - Wagenzonen / Ruhezonen filtern                      │
-└─────────────────────────┬──────────────────────────────┘
-                          │ Verfügbare Kandidatensitze
-                          ▼
-┌────────────────────────────────────────────────────────┐
-│  Stufe 2: Score-basierte Platzzuweisung (Ranking)      │
-│  - Präferenz-Matching (Tisch, Fenster, Strom)          │
-│  - Gleichmäßigkeits-Score (Dispersionsmetrik)          │
-│  - Kohäsions-Score (nur Gruppen)                       │
-└─────────────────────────┬──────────────────────────────┘
-                          ▼
+                      |
+                      v
++--------------------------------------------------------+
+|  Stufe 1: Kontingent- und Blockierungslogik (Filter)   |
+|  - Gruppenkontingente bis T_deadline reservieren       |
+|  - Wagenzonen / Ruhezonen filtern                      |
++-------------------------+------------------------------+
+                          | Verfügbare Kandidatensitze
+                          v
++--------------------------------------------------------+
+|  Stufe 2: Score-basierte Platzzuweisung (Ranking)      |
+|  - Präferenz-Matching (Tisch, Fenster, Strom)          |
+|  - Gleichmäßigkeits-Score (Dispersionsmetrik)          |
+|  - Kohäsions-Score (nur Gruppen)                       |
++-------------------------+------------------------------+
+                          v
                   Beste Sitzgruppe
 ----
 
@@ -410,7 +418,7 @@ Unter `/` (`META-INF/resources/index.html`, ohne Build-Tooling) liegt eine Einze
 . *Bestätigen* ruft `bestaetigung` auf; der Server prüft unter dem Wagen-Lock erneut. Danach sind die Sitze auf dieser Teilstrecke für folgende Anfragen belegt, auf nicht überlappenden Teilstrecken bleiben sie frei.
 . Die Liste zeigt die Reservierungen; *Alle zurücksetzen* löscht sie für den Wagen.
 
-Der Wagenplan zeigt Ruhe- und Kinderbereich als getönte Bänder (Zz bzw. ☺), Tische als Rechtecke zwischen den vier Plätzen, die Rollstuhlplätze (♿) und Fahrradstellplätze (🚲) in den Endreihen.
+Der Wagenplan zeigt Ruhe- und Kinderbereich als getönte, beschriftete Bänder, Tische als Rechtecke zwischen den vier Plätzen sowie die Rollstuhlplätze und Fahrradstellplätze mit eigenen Symbolen in den Endreihen.
 
 Der Demo-Wagen `W1` (ICE 101, Hamburg-Hannover-Frankfurt-München) kommt aus `import.sql`: Reihe 0 und 11 Sonderplätze (je ein Rollstuhl- und Fahrradstellplatz), Reihe 1 Ruhebereich, Tischreihen 4-7 (Reihenpaare 4/5 und 6/7), Reihe 10 Kinderbereich. Sein Gruppenkontingent auf Reihe 4 läuft bis 2030-01-01.
 
