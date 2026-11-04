@@ -19,9 +19,12 @@ if errorlevel 1 (
 )
 
 set "MAJOR="
-for /f "tokens=3" %%v in ('"%JAVA_CMD%" -version 2^>^&1 ^| findstr /i "version"') do (
+set "JV_DATEI=%TEMP%\seat-allocator-java-version.txt"
+"%JAVA_CMD%" -version > "%JV_DATEI%" 2>&1
+for /f "tokens=3" %%v in ('findstr /i "version" "%JV_DATEI%"') do (
   for /f "delims=.-+_" %%m in ("%%~v") do set "MAJOR=%%m"
 )
+del "%JV_DATEI%" >nul 2>&1
 if not defined MAJOR goto :zualt
 if %MAJOR% LSS 21 goto :zualt
 goto :start

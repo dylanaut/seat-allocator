@@ -148,6 +148,7 @@ jobs:
                  -RedirectStandardOutput "$dir\..\demo.log" -RedirectStandardError "$dir\..\demo-err.log"
           $ok = $false
           for ($i = 0; $i -lt 60; $i++) {
+            if ($p.HasExited) { break }
             try {
               $r = Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:18080/api/v1/wagen" -TimeoutSec 5
               if ($r.Content -like '*"W1"*') { $ok = $true; break }
