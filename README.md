@@ -19,7 +19,7 @@ mvn verify               # Tests, Anwendung und Dokumentation
 
 `mvn verify` erzeugt aus `project.adoc` die Dokumentation in `target/generated-docs/`:
 `seat-allocator-<version>.pdf` und `seat-allocator-<version>.html`. Mit `-Ddocs.skip=true` wird sie übersprungen.
-Formeln erscheinen im PDF als LaTeX-Quelltext, im HTML werden sie mit MathJax gesetzt.
+Im PDF werden Formeln (`latexmath`) mit JLaTeXMath als Bilder gesetzt (Erweiterung `src/docs/asciidoctor/formeln-als-bilder.rb`), im HTML mit MathJax. Die Sequenzdiagramme (PlantUML) entstehen im Build über `asciidoctorj-diagram`; das HTML enthält die Bilder eingebettet (`data-uri`).
 
 ## Continuous Integration
 

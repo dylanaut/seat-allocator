@@ -18,6 +18,9 @@
         <asciidoctor-maven-plugin.version>3.2.0</asciidoctor-maven-plugin.version>
         <asciidoctorj.version>3.0.1</asciidoctorj.version>
         <asciidoctorj-pdf.version>2.3.27</asciidoctorj-pdf.version>
+        <jlatexmath.version>1.0.7</jlatexmath.version>
+        <asciidoctorj-diagram.version>3.2.1</asciidoctorj-diagram.version>
+        <asciidoctorj-diagram-plantuml.version>1.2026.2</asciidoctorj-diagram-plantuml.version>
         <docs.skip>false</docs.skip>
     </properties>
 
@@ -94,6 +97,23 @@
                         <artifactId>asciidoctorj-pdf</artifactId>
                         <version>${asciidoctorj-pdf.version}</version>
                     </dependency>
+                    <!-- PlantUML-Diagramme (Sequenzdiagramme), reine Java-Ausgabe ohne Graphviz -->
+                    <dependency>
+                        <groupId>org.asciidoctor</groupId>
+                        <artifactId>asciidoctorj-diagram</artifactId>
+                        <version>${asciidoctorj-diagram.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.asciidoctor</groupId>
+                        <artifactId>asciidoctorj-diagram-plantuml</artifactId>
+                        <version>${asciidoctorj-diagram-plantuml.version}</version>
+                    </dependency>
+                    <!-- Setzt LaTeX-Formeln für das PDF als Bilder (siehe src/docs/asciidoctor/formeln-als-bilder.rb) -->
+                    <dependency>
+                        <groupId>org.scilab.forge</groupId>
+                        <artifactId>jlatexmath</artifactId>
+                        <version>${jlatexmath.version}</version>
+                    </dependency>
                 </dependencies>
                 <configuration>
                     <skip>${docs.skip}</skip>
@@ -104,6 +124,8 @@
                         <source-highlighter>rouge</source-highlighter>
                         <revnumber>${project.version}</revnumber>
                         <pdf-theme>default</pdf-theme>
+                        <imagesdir>${project.build.directory}/generated-docs/diagramme</imagesdir>
+                        <imagesoutdir>${project.build.directory}/generated-docs/diagramme</imagesoutdir>
                     </attributes>
                 </configuration>
                 <executions>
@@ -115,6 +137,13 @@
                         </goals>
                         <configuration>
                             <backend>pdf</backend>
+                            <requires>
+                                <require>asciidoctor-diagram</require>
+                                <require>${project.basedir}/src/docs/asciidoctor/formeln-als-bilder.rb</require>
+                            </requires>
+                            <attributes>
+                                <formel-dir>${project.build.directory}/generated-docs/formeln</formel-dir>
+                            </attributes>
                             <outputFile>${project.build.directory}/generated-docs/${project.artifactId}-${project.version}.pdf</outputFile>
                         </configuration>
                     </execution>
@@ -126,6 +155,12 @@
                         </goals>
                         <configuration>
                             <backend>html5</backend>
+                            <requires>
+                                <require>asciidoctor-diagram</require>
+                            </requires>
+                            <attributes>
+                                <data-uri>true</data-uri>
+                            </attributes>
                             <outputFile>${project.build.directory}/generated-docs/${project.artifactId}-${project.version}.html</outputFile>
                         </configuration>
                     </execution>
