@@ -260,9 +260,11 @@ Ablauf von `gruppeZuteilen(wagenId, request)`:
 
 ==== einzelplatzZuteilen
 
+[%unbreakable]
+--
 Vergibt einen einzelnen Sitzplatz (`POST .../sitzplaetze/zuteilen`).
 
-[plantuml,seq-einzelplatz-zuteilen,png]
+[plantuml,seq-einzelplatz-zuteilen,png,pdfwidth=80%]
 ....
 @startuml
 include::diagramme/stil.puml[]
@@ -294,12 +296,17 @@ else kein Sitzplatz
 end
 @enduml
 ....
+--
+
+<<<
 
 ==== gruppeZuteilen
 
+[%unbreakable]
+--
 Vergibt Sitzplätze und gewünschte Sonderplätze für eine Gruppe (`POST .../sitzplaetze/gruppe-zuteilen`).
 
-[plantuml,seq-gruppe-zuteilen,png]
+[plantuml,seq-gruppe-zuteilen,png,pdfwidth=80%]
 ....
 @startuml
 include::diagramme/stil.puml[]
@@ -339,12 +346,17 @@ S -> DB: je Platz eine Sitzreservierung speichern
 S --> R: Sonderplätze und Sitzplätze
 @enduml
 ....
+--
+
+<<<
 
 ==== sitzplanErstellen
 
+[%unbreakable]
+--
 Liefert den Sitzplan der Teilstrecke, mit `vorschlag = true` zusätzlich den besten Vorschlag, der vorgemerkt wird (`GET .../sitzplan` bzw. `POST .../vorschlag`).
 
-[plantuml,seq-sitzplan-erstellen,png]
+[plantuml,seq-sitzplan-erstellen,png,pdfwidth=80%]
 ....
 @startuml
 include::diagramme/stil.puml[]
@@ -374,12 +386,17 @@ S -> S: Zustand je Sitzplatz (FREI, BELEGT, VORGEMERKT, ...)
 S --> R: SitzplanResponse (Sitzplätze, vorgeschlagen, Token)
 @enduml
 ....
+--
+
+<<<
 
 ==== vormerken
 
+[%unbreakable]
+--
 Ersetzt die Vormerkung eines Tokens durch die gewählten Sitzplätze (`POST .../vormerkung`).
 
-[plantuml,seq-vormerken,png]
+[plantuml,seq-vormerken,png,pdfwidth=80%]
 ....
 @startuml
 include::diagramme/stil.puml[]
@@ -405,12 +422,17 @@ S -> S: Sitzplan aufbauen
 S --> R: SitzplanResponse (Token, Ablaufzeitpunkt)
 @enduml
 ....
+--
+
+<<<
 
 ==== bestaetigen
 
+[%unbreakable]
+--
 Bucht die gewählten Sitzplätze nach erneuter Prüfung (`POST .../bestaetigung`).
 
-[plantuml,seq-bestaetigen,png]
+[plantuml,seq-bestaetigen,png,pdfwidth=80%]
 ....
 @startuml
 include::diagramme/stil.puml[]
@@ -434,12 +456,17 @@ S --> R: ReservierungResponse
 note right of R: Bei einer Ausnahme wird die Transaktion zurückgerollt,\ndie Vormerkung bleibt dann erhalten.
 @enduml
 ....
+--
+
+<<<
 
 ==== reservierungen
 
+[%unbreakable]
+--
 Listet die Reservierungen eines Wagens (`GET .../reservierungen`).
 
-[plantuml,seq-reservierungen,png]
+[plantuml,seq-reservierungen,png,pdfwidth=80%]
 ....
 @startuml
 include::diagramme/stil.puml[]
@@ -457,12 +484,17 @@ S -> S: nach reservierungId gruppieren
 S --> R: Liste von ReservierungResponse
 @enduml
 ....
+--
+
+<<<
 
 ==== stornieren
 
+[%unbreakable]
+--
 Gibt alle Sitzplätze einer Reservierung frei (`DELETE .../reservierungen/{reservierungId}`).
 
-[plantuml,seq-stornieren,png]
+[plantuml,seq-stornieren,png,pdfwidth=80%]
 ....
 @startuml
 include::diagramme/stil.puml[]
@@ -480,12 +512,17 @@ else
 end
 @enduml
 ....
+--
+
+<<<
 
 ==== kennzahlen
 
+[%unbreakable]
+--
 Berechnet Auslastung und Anteil zusammenhängender Gruppen (`GET .../kennzahlen`).
 
-[plantuml,seq-kennzahlen,png]
+[plantuml,seq-kennzahlen,png,pdfwidth=80%]
 ....
 @startuml
 include::diagramme/stil.puml[]
@@ -505,12 +542,17 @@ end
 S --> R: KennzahlenResponse
 @enduml
 ....
+--
+
+<<<
 
 ==== zuruecksetzen
 
+[%unbreakable]
+--
 Löscht alle Vormerkungen und Reservierungen eines Wagens (`DELETE .../reservierungen`).
 
-[plantuml,seq-zuruecksetzen,png]
+[plantuml,seq-zuruecksetzen,png,pdfwidth=80%]
 ....
 @startuml
 include::diagramme/stil.puml[]
@@ -525,6 +567,7 @@ S -> DB: alle Sitzreservierungen des Wagens löschen
 S --> R: Anzahl gelöschter Zeilen
 @enduml
 ....
+--
 
 == REST-API & Schnittstelle
 
