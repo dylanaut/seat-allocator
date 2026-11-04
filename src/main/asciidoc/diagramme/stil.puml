@@ -1,0 +1,16 @@
+hide footbox
+skinparam dpi 130
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam maxMessageSize 190
+skinparam sequence {
+  ParticipantBackgroundColor #F4F6F8
+  ParticipantBorderColor #5D6B79
+  LifeLineBorderColor #8A949E
+  ArrowColor #1C2630
+  GroupBorderColor #8A949E
+  GroupBackgroundColor #FFFFFF
+}
+skinparam noteBackgroundColor #FFF8E1
+skinparam noteBorderColor #C98A00
+skinparam databaseBackgroundColor #F4F6F8

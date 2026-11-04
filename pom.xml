@@ -15,6 +15,13 @@
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.version>3.40.1.1</quarkus.platform.version>
         <java.version>21</java.version>
+        <asciidoctor-maven-plugin.version>3.2.0</asciidoctor-maven-plugin.version>
+        <asciidoctorj.version>3.0.1</asciidoctorj.version>
+        <asciidoctorj-pdf.version>2.3.27</asciidoctorj-pdf.version>
+        <jlatexmath.version>1.0.7</jlatexmath.version>
+        <asciidoctorj-diagram.version>3.2.1</asciidoctorj-diagram.version>
+        <asciidoctorj-diagram-plantuml.version>1.2026.2</asciidoctorj-diagram-plantuml.version>
+        <docs.skip>false</docs.skip>
     </properties>
 
     <dependencyManagement>
@@ -72,6 +79,90 @@
                             <goal>generate-code</goal>
                             <goal>generate-code-tests</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.asciidoctor</groupId>
+                <artifactId>asciidoctor-maven-plugin</artifactId>
+                <version>${asciidoctor-maven-plugin.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.asciidoctor</groupId>
+                        <artifactId>asciidoctorj</artifactId>
+                        <version>${asciidoctorj.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.asciidoctor</groupId>
+                        <artifactId>asciidoctorj-pdf</artifactId>
+                        <version>${asciidoctorj-pdf.version}</version>
+                    </dependency>
+                    <!-- PlantUML-Diagramme (Sequenzdiagramme), reine Java-Ausgabe ohne Graphviz -->
+                    <dependency>
+                        <groupId>org.asciidoctor</groupId>
+                        <artifactId>asciidoctorj-diagram</artifactId>
+                        <version>${asciidoctorj-diagram.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.asciidoctor</groupId>
+                        <artifactId>asciidoctorj-diagram-plantuml</artifactId>
+                        <version>${asciidoctorj-diagram-plantuml.version}</version>
+                    </dependency>
+                    <!-- Setzt LaTeX-Formeln für das PDF als Bilder (siehe src/docs/asciidoctor/formeln-als-bilder.rb) -->
+                    <dependency>
+                        <groupId>org.scilab.forge</groupId>
+                        <artifactId>jlatexmath</artifactId>
+                        <version>${jlatexmath.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <skip>${docs.skip}</skip>
+                    <sourceDirectory>${project.basedir}/src/main/asciidoc</sourceDirectory>
+                    <sourceDocumentName>project.adoc</sourceDocumentName>
+                    <outputDirectory>${project.build.directory}/generated-docs</outputDirectory>
+                    <attributes>
+                        <source-highlighter>rouge</source-highlighter>
+                        <revnumber>${project.version}</revnumber>
+                        <pdf-theme>default</pdf-theme>
+                        <imagesdir>${project.build.directory}/generated-docs/diagramme</imagesdir>
+                        <imagesoutdir>${project.build.directory}/generated-docs/diagramme</imagesoutdir>
+                    </attributes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>pdf</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>process-asciidoc</goal>
+                        </goals>
+                        <configuration>
+                            <backend>pdf</backend>
+                            <requires>
+                                <require>asciidoctor-diagram</require>
+                                <require>${project.basedir}/src/docs/asciidoctor/formeln-als-bilder.rb</require>
+                            </requires>
+                            <attributes>
+                                <formel-dir>${project.build.directory}/generated-docs/formeln</formel-dir>
+                            </attributes>
+                            <outputFile>${project.build.directory}/generated-docs/${project.artifactId}-${project.version}.pdf</outputFile>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>html</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>process-asciidoc</goal>
+                        </goals>
+                        <configuration>
+                            <backend>html5</backend>
+                            <requires>
+                                <require>asciidoctor-diagram</require>
+                            </requires>
+                            <attributes>
+                                <data-uri>true</data-uri>
+                            </attributes>
+                            <outputFile>${project.build.directory}/generated-docs/${project.artifactId}-${project.version}.html</outputFile>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

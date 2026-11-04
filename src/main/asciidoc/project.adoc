@@ -7,6 +7,14 @@
 :source-highlighter: rouge
 :icons: font
 :stem: latexmath
+:lang: de
+:chapter-signifier: Kapitel
+:appendix-caption: Anhang
+:toc-title: Inhaltsverzeichnis
+:table-caption: Tabelle
+:listing-caption: Listing
+:figure-caption: Abbildung
+:version-label: Version
 
 == Übersicht & Problemstellung
 
@@ -43,22 +51,22 @@ Jeder Wagen hat neben den Sitzplätzen (2+2 Bestuhlung) zwei Rollstuhlplätze un
 [source,text]
 ----
               Eingehende Anfrage
-                      │
-                      ▼
-┌────────────────────────────────────────────────────────┐
-│  Stufe 1: Kontingent- und Blockierungslogik (Filter)   │
-│  - Gruppenkontingente bis T_deadline reservieren       │
-│  - Wagenzonen / Ruhezonen filtern                      │
-└─────────────────────────┬──────────────────────────────┘
-                          │ Verfügbare Kandidatensitze
-                          ▼
-┌────────────────────────────────────────────────────────┐
-│  Stufe 2: Score-basierte Platzzuweisung (Ranking)      │
-│  - Präferenz-Matching (Tisch, Fenster, Strom)          │
-│  - Gleichmäßigkeits-Score (Dispersionsmetrik)          │
-│  - Kohäsions-Score (nur Gruppen)                       │
-└─────────────────────────┬──────────────────────────────┘
-                          ▼
+                      |
+                      v
++--------------------------------------------------------+
+|  Stufe 1: Kontingent- und Blockierungslogik (Filter)   |
+|  - Gruppenkontingente bis T_deadline reservieren       |
+|  - Wagenzonen / Ruhezonen filtern                      |
++-------------------------+------------------------------+
+                          | Verfügbare Kandidatensitze
+                          v
++--------------------------------------------------------+
+|  Stufe 2: Score-basierte Platzzuweisung (Ranking)      |
+|  - Präferenz-Matching (Tisch, Fenster, Strom)          |
+|  - Gleichmäßigkeits-Score (Dispersionsmetrik)          |
+|  - Kohäsions-Score (nur Gruppen)                       |
++-------------------------+------------------------------+
+                          v
                   Beste Sitzgruppe
 ----
 
@@ -246,13 +254,320 @@ Ablauf von `gruppeZuteilen(wagenId, request)`:
 . Bewertung jeder Sitzgruppe mit stem:[Score(C)], Auswahl des Maximums.
 . Buchung: je Sitz eine `Sitzreservierung` für die Teilstrecke. Leere Liste, wenn keine Sitzgruppe existiert.
 
-`einzelplatzZuteilen(wagenId, request)` läuft analog mit demselben Wagen-Lock für Einzelsitze. Einzelsitze dürfen aktive Kontingente nie nutzen und unterliegen zusätzlich Topologieschutz und Zeitverfall. Der Quellcode steht in `SitzzuteilungService.java`:
+`einzelplatzZuteilen(wagenId, request)` läuft analog mit demselben Wagen-Lock für Einzelsitze. Einzelsitze dürfen aktive Kontingente nie nutzen und unterliegen zusätzlich Topologieschutz und Zeitverfall. Das Zusammenspiel der öffentlichen Methoden von `SitzzuteilungService` zeigen die folgenden Sequenzdiagramme. Alle Methoden laufen in einer Transaktion (`@Transactional`). "Resource" steht für die aufrufende REST-Schicht, "Datenbank" für die Panache-Entitäten. Fehler werden von `ApiExceptionMapper` auf HTTP-Status abgebildet.
 
-[source,java]
-.SitzzuteilungService.java
-----
-include::../java/org/example/train/service/SitzzuteilungService.java[]
-----
+=== Sequenzdiagramme der öffentlichen Methoden
+
+==== einzelplatzZuteilen
+
+[%unbreakable]
+--
+Vergibt einen einzelnen Sitzplatz (`POST .../sitzplaetze/zuteilen`).
+
+[plantuml,seq-einzelplatz-zuteilen,png,pdfwidth=80%]
+....
+@startuml
+include::diagramme/stil.puml[]
+participant "Resource" as R
+participant "SitzzuteilungService" as S
+database "Datenbank" as DB
+
+R -> S: einzelplatzZuteilen(wagenId, request)
+S -> DB: Wagen laden und sperren (PESSIMISTIC_WRITE)
+alt Wagen unbekannt
+  S --> R: WagenNichtGefundenException (404)
+end
+S -> S: Teilstrecke prüfen
+alt Teilstrecke ungültig
+  S --> R: UngueltigeAnfrageException (400)
+end
+S -> DB: belegte und vorgemerkte Sitzplätze der Teilstrecke
+S -> DB: aktive Gruppenkontingente, Sitzplätze (art = SITZ)
+S -> S: Kandidaten ohne belegte und kontingentierte Sitzplätze
+note right of S
+  Topologieschutz und Zeitverfall,
+  Score je Zonenstufe (Standard, Ruhe, Kinder)
+end note
+alt Sitzplatz gefunden
+  S -> DB: Sitzreservierung speichern
+  S --> R: Optional(Sitzplatz)
+else kein Sitzplatz
+  S --> R: Optional.empty (409)
+end
+@enduml
+....
+--
+
+<<<
+
+==== gruppeZuteilen
+
+[%unbreakable]
+--
+Vergibt Sitzplätze und gewünschte Sonderplätze für eine Gruppe (`POST .../sitzplaetze/gruppe-zuteilen`).
+
+[plantuml,seq-gruppe-zuteilen,png,pdfwidth=80%]
+....
+@startuml
+include::diagramme/stil.puml[]
+participant "Resource" as R
+participant "SitzzuteilungService" as S
+database "Datenbank" as DB
+
+R -> S: gruppeZuteilen(wagenId, request)
+alt Ruhezone und Kinderbereich gewünscht
+  S --> R: UngueltigeAnfrageException (400)
+end
+S -> DB: Wagen laden und sperren (PESSIMISTIC_WRITE)
+S -> S: Teilstrecke prüfen
+S -> DB: belegte und vorgemerkte Sitzplätze der Teilstrecke
+
+group Platzwahl (auswaehlen)
+  loop gewünschter Rollstuhl- und Fahrradplatz
+    S -> DB: Sonderplätze der Art laden
+    alt kein freier Sonderplatz
+      S --> R: leere Liste (409)
+    end
+  end
+  note right of S: Rollstuhlplatz ersetzt einen Sitzplatz der Gruppe
+  alt eine Person ohne Kinder
+    S -> S: einzelplatzAuswaehlen (Topologieschutz, Zeitverfall)
+  else mehrere Personen oder Familie
+    S -> DB: aktive Gruppenkontingente, Sitzplätze (art = SITZ)
+    S -> S: zusammenhängende Sitzgruppen je Zonenstufe suchen
+    S -> S: Score je Sitzgruppe, Maximum wählen
+  end
+  alt keine Sitzgruppe
+    S --> R: leere Liste (409)
+  end
+end
+
+S -> DB: je Platz eine Sitzreservierung speichern
+S --> R: Sonderplätze und Sitzplätze
+@enduml
+....
+--
+
+<<<
+
+==== sitzplanErstellen
+
+[%unbreakable]
+--
+Liefert den Sitzplan der Teilstrecke, mit `vorschlag = true` zusätzlich den besten Vorschlag, der vorgemerkt wird (`GET .../sitzplan` bzw. `POST .../vorschlag`).
+
+[plantuml,seq-sitzplan-erstellen,png,pdfwidth=80%]
+....
+@startuml
+include::diagramme/stil.puml[]
+participant "Resource" as R
+participant "SitzzuteilungService" as S
+database "Datenbank" as DB
+
+R -> S: sitzplanErstellen(wagenId, request, vorschlag)
+alt vorschlag = false
+  S -> DB: Wagen laden
+else vorschlag = true
+  S -> DB: Wagen laden und sperren (PESSIMISTIC_WRITE)
+end
+S -> S: Anfrage und Teilstrecke prüfen
+opt vorschlag = true
+  S -> DB: abgelaufene und eigene Vormerkungen löschen
+  S -> DB: belegte und fremd vorgemerkte Sitzplätze
+  S -> S: Platzwahl wie bei gruppeZuteilen
+  alt Platzwahl erfolgreich
+    S -> DB: Vormerkungen anlegen (Token, Ablaufzeitpunkt)
+  else nichts gefunden
+    note right of S: meldung = "Keine passende Sitzplatzgruppe verfügbar."
+  end
+end
+S -> DB: belegte, vorgemerkte Sitzplätze, aktive Gruppenkontingente
+S -> S: Zustand je Sitzplatz (FREI, BELEGT, VORGEMERKT, ...)
+S --> R: SitzplanResponse (Sitzplätze, vorgeschlagen, Token)
+@enduml
+....
+--
+
+<<<
+
+==== vormerken
+
+[%unbreakable]
+--
+Ersetzt die Vormerkung eines Tokens durch die gewählten Sitzplätze (`POST .../vormerkung`).
+
+[plantuml,seq-vormerken,png,pdfwidth=80%]
+....
+@startuml
+include::diagramme/stil.puml[]
+participant "Resource" as R
+participant "SitzzuteilungService" as S
+database "Datenbank" as DB
+
+R -> S: vormerken(wagenId, request)
+S -> DB: Wagen laden und sperren (PESSIMISTIC_WRITE)
+S -> S: Teilstrecke prüfen
+S -> DB: abgelaufene Vormerkungen und Vormerkungen des Tokens löschen
+alt Sitz-IDs nicht leer
+  S -> DB: Sitzplätze laden
+  S -> DB: belegte und fremd vorgemerkte Sitzplätze, aktive Gruppenkontingente
+  alt unbekannt oder doppelt
+    S --> R: UngueltigeAnfrageException (400)
+  else belegt, fremd vorgemerkt oder Kontingent
+    S --> R: ReservierungsKonfliktException (409)
+  end
+  S -> DB: Vormerkungen anlegen (Token, Ablaufzeitpunkt)
+end
+S -> S: Sitzplan aufbauen
+S --> R: SitzplanResponse (Token, Ablaufzeitpunkt)
+@enduml
+....
+--
+
+<<<
+
+==== bestaetigen
+
+[%unbreakable]
+--
+Bucht die gewählten Sitzplätze nach erneuter Prüfung (`POST .../bestaetigung`).
+
+[plantuml,seq-bestaetigen,png,pdfwidth=80%]
+....
+@startuml
+include::diagramme/stil.puml[]
+participant "Resource" as R
+participant "SitzzuteilungService" as S
+database "Datenbank" as DB
+
+R -> S: bestaetigen(wagenId, request)
+S -> DB: Wagen laden und sperren (PESSIMISTIC_WRITE)
+S -> S: Teilstrecke prüfen
+S -> DB: abgelaufene Vormerkungen und Vormerkungen des Tokens löschen
+S -> DB: Sitzplätze laden
+S -> DB: belegte und fremd vorgemerkte Sitzplätze, aktive Gruppenkontingente
+alt unbekannt oder doppelt
+  S --> R: UngueltigeAnfrageException (400)
+else belegt, fremd vorgemerkt oder Kontingent
+  S --> R: ReservierungsKonfliktException (409)
+end
+S -> DB: je Sitzplatz eine Sitzreservierung speichern
+S --> R: ReservierungResponse
+note right of R: Bei einer Ausnahme wird die Transaktion zurückgerollt,\ndie Vormerkung bleibt dann erhalten.
+@enduml
+....
+--
+
+<<<
+
+==== reservierungen
+
+[%unbreakable]
+--
+Listet die Reservierungen eines Wagens (`GET .../reservierungen`).
+
+[plantuml,seq-reservierungen,png,pdfwidth=80%]
+....
+@startuml
+include::diagramme/stil.puml[]
+participant "Resource" as R
+participant "SitzzuteilungService" as S
+database "Datenbank" as DB
+
+R -> S: reservierungen(wagenId)
+S -> DB: Wagen laden
+alt Wagen unbekannt
+  S --> R: WagenNichtGefundenException (404)
+end
+S -> DB: Sitzreservierungen des Wagens (nach Zeitpunkt)
+S -> S: nach reservierungId gruppieren
+S --> R: Liste von ReservierungResponse
+@enduml
+....
+--
+
+<<<
+
+==== stornieren
+
+[%unbreakable]
+--
+Gibt alle Sitzplätze einer Reservierung frei (`DELETE .../reservierungen/{reservierungId}`).
+
+[plantuml,seq-stornieren,png,pdfwidth=80%]
+....
+@startuml
+include::diagramme/stil.puml[]
+participant "Resource" as R
+participant "SitzzuteilungService" as S
+database "Datenbank" as DB
+
+R -> S: stornieren(wagenId, reservierungId)
+S -> DB: Wagen laden und sperren (PESSIMISTIC_WRITE)
+S -> DB: Sitzreservierungen der Reservierung löschen
+alt keine Zeile gelöscht
+  S --> R: ReservierungNichtGefundenException (404)
+else
+  S --> R: Anzahl gelöschter Sitzplätze
+end
+@enduml
+....
+--
+
+<<<
+
+==== kennzahlen
+
+[%unbreakable]
+--
+Berechnet Auslastung und Anteil zusammenhängender Gruppen (`GET .../kennzahlen`).
+
+[plantuml,seq-kennzahlen,png,pdfwidth=80%]
+....
+@startuml
+include::diagramme/stil.puml[]
+participant "Resource" as R
+participant "SitzzuteilungService" as S
+database "Datenbank" as DB
+
+R -> S: kennzahlen(wagenId)
+S -> DB: Wagen laden
+S -> DB: Sitzplätze (art = SITZ) und Sitzreservierungen des Wagens
+loop je Teilstrecke
+  S -> S: belegte Sitzplätze zählen, Auslastung in Prozent
+end
+loop je Reservierung mit mindestens zwei Sitzplätzen
+  S -> S: größte zusammenhängende Komponente prüfen
+end
+S --> R: KennzahlenResponse
+@enduml
+....
+--
+
+<<<
+
+==== zuruecksetzen
+
+[%unbreakable]
+--
+Löscht alle Vormerkungen und Reservierungen eines Wagens (`DELETE .../reservierungen`).
+
+[plantuml,seq-zuruecksetzen,png,pdfwidth=80%]
+....
+@startuml
+include::diagramme/stil.puml[]
+participant "Resource" as R
+participant "SitzzuteilungService" as S
+database "Datenbank" as DB
+
+R -> S: zuruecksetzen(wagenId)
+S -> DB: Wagen laden und sperren (PESSIMISTIC_WRITE)
+S -> DB: alle Vormerkungen des Wagens löschen
+S -> DB: alle Sitzreservierungen des Wagens löschen
+S --> R: Anzahl gelöschter Zeilen
+@enduml
+....
+--
 
 == REST-API & Schnittstelle
 
@@ -312,12 +627,6 @@ include::../java/org/example/train/service/SitzzuteilungService.java[]
 |===
 
 Fehlerantworten haben die Form `{"fehler": "..."}` (siehe `ApiExceptionMapper`).
-
-[source,java]
-.SitzplatzResource.java
-----
-include::../java/org/example/train/resource/SitzplatzResource.java[]
-----
 
 == Concurrency-Strategien & Lock-Handling
 
@@ -410,7 +719,7 @@ Unter `/` (`META-INF/resources/index.html`, ohne Build-Tooling) liegt eine Einze
 . *Bestätigen* ruft `bestaetigung` auf; der Server prüft unter dem Wagen-Lock erneut. Danach sind die Sitze auf dieser Teilstrecke für folgende Anfragen belegt, auf nicht überlappenden Teilstrecken bleiben sie frei.
 . Die Liste zeigt die Reservierungen; *Alle zurücksetzen* löscht sie für den Wagen.
 
-Der Wagenplan zeigt Ruhe- und Kinderbereich als getönte Bänder (Zz bzw. ☺), Tische als Rechtecke zwischen den vier Plätzen, die Rollstuhlplätze (♿) und Fahrradstellplätze (🚲) in den Endreihen.
+Der Wagenplan zeigt Ruhe- und Kinderbereich als getönte, beschriftete Bänder, Tische als Rechtecke zwischen den vier Plätzen sowie die Rollstuhlplätze und Fahrradstellplätze mit eigenen Symbolen in den Endreihen.
 
 Der Demo-Wagen `W1` (ICE 101, Hamburg-Hannover-Frankfurt-München) kommt aus `import.sql`: Reihe 0 und 11 Sonderplätze (je ein Rollstuhl- und Fahrradstellplatz), Reihe 1 Ruhebereich, Tischreihen 4-7 (Reihenpaare 4/5 und 6/7), Reihe 10 Kinderbereich. Sein Gruppenkontingent auf Reihe 4 läuft bis 2030-01-01.
 

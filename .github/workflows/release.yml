@@ -1,0 +1,97 @@
+name: Release
+
+# Ein Release entsteht durch einen Tag der Form vMAJOR.MINOR.PATCH (z. B. v1.0.0) auf einem Commit von main.
+# Die Version im POM wird beim Build aus dem Tag gesetzt und nicht eingecheckt.
+# Manuell gestartet (workflow_dispatch) wird nur gebaut und als Workflow-Artefakt abgelegt, ohne Release.
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version für den Probelauf (z. B. 1.0.0-rc.1)"
+        required: true
+        default: "0.0.0-test"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release bauen
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Version bestimmen
+        id: version
+        env:
+          EINGABE: ${{ inputs.version }}
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${EINGABE}"
+          fi
+          if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::Ungültige Version: ${VERSION}"
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+
+      - name: Tag muss auf main liegen
+        if: github.ref_type == 'tag'
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "::error::Der Tag ${GITHUB_REF_NAME} liegt nicht auf main."
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Version setzen
+        run: mvn -B -ntp org.codehaus.mojo:versions-maven-plugin:2.23.0:set -DnewVersion="${{ steps.version.outputs.version }}" -DgenerateBackupPoms=false
+
+      - name: Build, Tests und Dokumentation
+        run: mvn -B -ntp verify
+
+      - name: Verteilung zusammenstellen
+        id: dist
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          NAME="seat-allocator-${VERSION}"
+          mkdir -p "dist/${NAME}"
+          cp -r target/quarkus-app/. "dist/${NAME}/"
+          cp -r szenarien "dist/${NAME}/szenarien"
+          cp README.md "dist/${NAME}/"
+          (cd dist && zip -qr "${NAME}.zip" "${NAME}")
+          rm -rf "dist/${NAME}"
+          cp "target/generated-docs/${NAME}.pdf" "target/generated-docs/${NAME}.html" dist/
+          ls -l dist
+
+      - name: Artefakte hochladen
+        uses: actions/upload-artifact@v7
+        with:
+          name: seat-allocator-${{ steps.version.outputs.version }}
+          path: dist/*
+          if-no-files-found: error
+
+      - name: GitHub Release anlegen
+        if: github.ref_type == 'tag'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          FLAGS=(--title "Release ${VERSION}" --generate-notes --verify-tag)
+          if [[ "${VERSION}" == *-* ]]; then FLAGS+=(--prerelease); fi
+          gh release create "${GITHUB_REF_NAME}" dist/* "${FLAGS[@]}"
