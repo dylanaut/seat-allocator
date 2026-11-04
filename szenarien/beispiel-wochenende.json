@@ -1,0 +1,17 @@
+{
+  "id" : "beispiel-wochenende",
+  "name" : "Beispiel Wochenende",
+  "beschreibung" : "Familien, Gruppen, Sonderplätze und ein Storno auf Wagen W1 (Hamburg bis München).",
+  "wagenId" : "W1",
+  "schritte" : [
+    { "typ" : "ANFRAGE", "bezeichnung" : "Familie mit Kindern", "anfrage" : { "gruppengroesse" : 4, "mitKindern" : true, "einstiegHalt" : 0, "ausstiegHalt" : 3 } },
+    { "typ" : "ANFRAGE", "bezeichnung" : "Dreiergruppe am Tisch", "anfrage" : { "gruppengroesse" : 3, "wuenschtTisch" : true, "einstiegHalt" : 0, "ausstiegHalt" : 2 } },
+    { "typ" : "ANFRAGE", "bezeichnung" : "Rollstuhl mit Begleitung und Fahrrad", "anfrage" : { "gruppengroesse" : 2, "wuenschtRollstuhlplatz" : true, "wuenschtFahrradplatz" : true, "einstiegHalt" : 0, "ausstiegHalt" : 3 } },
+    { "typ" : "ANFRAGE", "bezeichnung" : "Paar sucht Ruhe", "anfrage" : { "gruppengroesse" : 2, "wuenschtRuhezone" : true, "einstiegHalt" : 0, "ausstiegHalt" : 1 } },
+    { "typ" : "ANFRAGE", "bezeichnung" : "Reisegruppe (8)", "anfrage" : { "gruppengroesse" : 8, "wuenschtTisch" : true, "einstiegHalt" : 1, "ausstiegHalt" : 3 } },
+    { "typ" : "STORNO", "bezeichnung" : "Reisegruppe sagt ab", "bezugSchritt" : 5 },
+    { "typ" : "ANFRAGE", "bezeichnung" : "Pärchen mit Fenster und Steckdose", "anfrage" : { "gruppengroesse" : 2, "wuenschtFenster" : true, "wuenschtSteckdose" : true, "einstiegHalt" : 1, "ausstiegHalt" : 3 } },
+    { "typ" : "ANFRAGE", "bezeichnung" : "Zweiter Rollstuhl", "anfrage" : { "gruppengroesse" : 1, "wuenschtRollstuhlplatz" : true, "einstiegHalt" : 0, "ausstiegHalt" : 3 } },
+    { "typ" : "ANFRAGE", "bezeichnung" : "Dritter Rollstuhl (kein Platz mehr)", "anfrage" : { "gruppengroesse" : 1, "wuenschtRollstuhlplatz" : true, "einstiegHalt" : 0, "ausstiegHalt" : 3 } }
+  ]
+}
