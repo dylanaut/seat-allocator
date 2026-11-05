@@ -22,6 +22,7 @@
         <asciidoctorj-diagram.version>3.2.1</asciidoctorj-diagram.version>
         <asciidoctorj-diagram-plantuml.version>1.2026.2</asciidoctorj-diagram-plantuml.version>
         <docs.skip>false</docs.skip>
+        <maven-assembly-plugin.version>3.8.0</maven-assembly-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -56,6 +57,12 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- H2 für das Profil "demo"; im Standardbuild nur auf dem Test-Klassenpfad (siehe Profil demo) -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-jdbc-h2</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -168,4 +175,50 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- Eigenständige Demo: "mvn package -Pdemo" erzeugt target/seat-allocator-demo-<version>.zip mit einem
+             plattformunabhängigen Uber-Jar (H2 und Testdaten integriert) und Startskripten für Windows und macOS/Linux -->
+        <profile>
+            <id>demo</id>
+            <properties>
+                <quarkus.profile>demo</quarkus.profile>
+                <quarkus.package.jar.type>uber-jar</quarkus.package.jar.type>
+                <docs.skip>true</docs.skip>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-jdbc-h2</artifactId>
+                    <scope>compile</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>${maven-assembly-plugin.version}</version>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/demo/assembly.xml</descriptor>
+                            </descriptors>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <finalName>${project.artifactId}-demo-${project.version}</finalName>
+                            <attach>false</attach>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>demo-zip</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

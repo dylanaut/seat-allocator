@@ -30,6 +30,17 @@ jobs:
       - name: Build, Tests und Dokumentation (PDF, HTML)
         run: mvn -B -ntp verify
 
+      # Stellt sicher, dass sich die eigenständige Demo (H2, Startskripte) bauen lässt
+      - name: Demo bauen
+        run: mvn -B -ntp -Pdemo package -DskipTests
+
+      - name: Demo hochladen
+        uses: actions/upload-artifact@v7
+        with:
+          name: demo
+          path: target/seat-allocator-demo-*.zip
+          if-no-files-found: error
+
       - name: Dokumentation hochladen
         if: always()
         uses: actions/upload-artifact@v7
