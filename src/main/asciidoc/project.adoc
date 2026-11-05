@@ -652,7 +652,7 @@ Zur Vermeidung von Überbuchungen (Double Bookings) und Inkonsistenzen bei paral
 | Hoch (~500-2.000 Reservierungen/s je Wagen, Schätzung, nicht gemessen)
 |===
 
-Empfehlung für Gruppenvergabe: grobgranulares Locking auf Wagenebene (`Wagen.findById(id, LockModeType.PESSIMISTIC_WRITE)`). Der Lock wird in `SitzzuteilungService.wagenSperren` zu Beginn von `einzelplatzZuteilen` und `gruppeZuteilen` gesetzt. Der Lock-Timeout ist über `jakarta.persistence.lock.timeout=2000` ms konfiguriert. Der Lock hält die Datenbankverbindung nur für die Dauer der Sitzgruppen-Berechnung, verhindert Deadlocks und garantiert eine globale Sicht auf den Wagen.
+Empfehlung für Gruppenvergabe: grobgranulares Locking auf Wagenebene (`Wagen.findById(id, LockModeType.PESSIMISTIC_WRITE)`). Der Lock wird in `SitzzuteilungService.wagenSperren` zu Beginn von `einzelplatzZuteilen` und `gruppeZuteilen` gesetzt. Der Lock-Timeout ist über `zuteilung.sperre.timeout-millisekunden` (Default 2000 ms) konfiguriert und wird als Hint `jakarta.persistence.lock.timeout` beim Sperren übergeben. Der Lock hält die Datenbankverbindung nur für die Dauer der Sitzgruppen-Berechnung, verhindert Deadlocks und garantiert eine globale Sicht auf den Wagen.
 
 == Temporäre Vormerkung
 

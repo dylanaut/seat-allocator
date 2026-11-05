@@ -1,6 +1,8 @@
 package org.example.train.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -60,12 +62,19 @@ public class SitzzuteilungService {
     @ConfigProperty(name = "zuteilung.vormerkung.sekunden", defaultValue = "30")
     long vormerkSekunden;
 
+    @ConfigProperty(name = "zuteilung.sperre.timeout-millisekunden", defaultValue = "2000")
+    int sperreTimeoutMillisekunden;
+
+    @Inject
+    EntityManager entityManager;
+
     /**
      * Sperrt den Wagen (SELECT ... FOR UPDATE): konkurrierende Buchungen desselben Wagens serialisieren,
      * ein eindeutiger Lock-Pfad pro Wagen verhindert Deadlocks.
      */
     private Wagen wagenSperren(String wagenId) {
-        Wagen wagen = Wagen.findById(wagenId, LockModeType.PESSIMISTIC_WRITE);
+        Wagen wagen = entityManager.find(Wagen.class, wagenId, LockModeType.PESSIMISTIC_WRITE,
+                Map.of("jakarta.persistence.lock.timeout", sperreTimeoutMillisekunden));
         if (wagen == null) {
             throw new WagenNichtGefundenException(wagenId);
         }

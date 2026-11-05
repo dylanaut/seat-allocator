@@ -73,5 +73,5 @@ java -Dquarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/seats \
 ```
 
 Ohne Dev Services braucht die Anwendung eine PostgreSQL-Datenbank. Beim Start wird das Schema neu erzeugt und mit
-Demodaten (`import.sql`) gefüllt (`quarkus.hibernate-orm.database.generation=drop-and-create`). Szenarien liegen als
+Demodaten (`import.sql`) gefüllt (`quarkus.hibernate-orm.schema-management.strategy=drop-and-create`). Szenarien liegen als
 JSON-Dateien im Verzeichnis `szenarien` relativ zum Arbeitsverzeichnis (`zuteilung.szenarien.verzeichnis`).
