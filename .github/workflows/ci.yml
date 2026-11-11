@@ -38,7 +38,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: demo
-          path: target/seat-allocator-demo-*.zip
+          path: simulator/target/seat-allocator-demo-*.zip
           if-no-files-found: error
 
       - name: Dokumentation hochladen
@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: dokumentation
-          path: target/generated-docs/*
+          path: simulator/target/generated-docs/*
           if-no-files-found: warn
 
       - name: Testberichte hochladen
@@ -54,4 +54,4 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: testberichte
-          path: target/surefire-reports/
+          path: simulator/target/surefire-reports/

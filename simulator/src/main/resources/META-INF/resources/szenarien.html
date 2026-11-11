@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Szenarien</title>
+<link rel="stylesheet" href="app.css">
+<style>
+main.szenarien { grid-template-columns: 380px 1fr; }
+@media (max-width: 980px) { main.szenarien { grid-template-columns: 1fr; } }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns.tight { margin-top: 8px; gap: 6px; }
+button.small { padding: 4px 8px; font-size: 13px; }
+textarea { width: 100%; padding: 7px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; resize: vertical; }
+ol.schritte { list-style: none; margin: 8px 0 0; padding: 0; max-height: 240px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
+ol.schritte li { padding: 6px 8px; border-top: 1px solid var(--border); cursor: pointer; font-size: 13px; display: flex; gap: 8px; }
+ol.schritte li:first-child { border-top: none; }
+ol.schritte li.aktiv { background: var(--avail); }
+ol.schritte li small { color: var(--muted); display: block; }
+.badge { display: inline-block; min-width: 20px; text-align: center; color: var(--muted); }
+.zeitraffer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+.zeitraffer input[type=range] { flex: 1; min-width: 160px; }
+.zeitraffer select { width: auto; }
+.status { font-size: 14px; min-height: 22px; margin: 4px 0 8px; }
+#kennzahlen { font-size: 13px; color: var(--muted); margin-top: 6px; }
+#diagramm { width: 100%; height: 130px; display: block; margin-top: 8px; }
+.log { list-style: none; margin: 8px 0 0; padding: 0; max-height: 220px; overflow: auto; font-size: 13px; }
+.log li { padding: 4px 6px; border-top: 1px solid var(--border); cursor: pointer; }
+.log li.jetzt { background: var(--avail); }
+.log .ok { color: var(--ok); } .log .fail { color: var(--danger); }
+.hinweis { color: var(--muted); font-size: 13px; }
+.dirty { color: var(--danger); font-size: 13px; }
+</style>
+</head>
+<body>
+<header><h1>Szenarien</h1>
+  <nav><a href="index.html">Reservieren</a><a href="szenarien.html" aria-current="page">Szenarien</a><a href="wagenlayout.html">Wagenlayout</a></nav></header>
+<main class="szenarien">
+  <div class="stack">
+    <section aria-labelledby="h-liste">
+      <h2 id="h-liste">Gespeicherte Szenarien</h2>
+      <select id="liste" size="5" aria-label="Gespeicherte Szenarien"></select>
+      <div class="btns tight">
+        <button id="btn-neu" type="button" class="small">Neu</button>
+        <button id="btn-laden" type="button" class="small">Öffnen</button>
+        <button id="btn-loeschen" type="button" class="small">Löschen</button>
+      </div>
+    </section>
+    <section aria-labelledby="h-edit">
+      <h2 id="h-edit">Szenario bearbeiten <span id="dirty" class="dirty"></span></h2>
+      <label for="name">Name</label>
+      <input id="name" type="text" maxlength="100" style="width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font:inherit">
+      <label for="beschreibung">Beschreibung</label>
+      <textarea id="beschreibung" rows="2" maxlength="1000"></textarea>
+      <label for="wagen">Wagen</label>
+      <select id="wagen"></select>
+      <div class="btns">
+        <button id="btn-speichern" type="button" class="primary">Speichern</button>
+        <button id="btn-kopie" type="button">Speichern unter neuem Namen</button>
+      </div>
+      <p id="msg" role="status" aria-live="polite"></p>
+    </section>
+    <section aria-labelledby="h-schritte">
+      <h2 id="h-schritte">Schritte</h2>
+      <div class="btns tight" style="margin-top:0">
+        <button id="btn-add-anfrage" type="button" class="small">+ Anfrage</button>
+        <button id="btn-add-storno" type="button" class="small">+ Storno</button>
+        <button id="btn-hoch" type="button" class="small" title="Nach oben">↑</button>
+        <button id="btn-runter" type="button" class="small" title="Nach unten">↓</button>
+        <button id="btn-dupl" type="button" class="small">Kopieren</button>
+        <button id="btn-del" type="button" class="small">Entfernen</button>
+      </div>
+      <ol id="schritte" class="schritte"></ol>
+      <div id="editor" style="margin-top:10px"></div>
+    </section>
+  </div>
+  <div class="stack">
+    <section aria-labelledby="h-zeit">
+      <h2 id="h-zeit">Zeitraffer</h2>
+      <div class="zeitraffer">
+        <button id="z-start" type="button" class="small" title="Zum Anfang">⏮</button>
+        <button id="z-zurueck" type="button" class="small" title="Ein Schritt zurück">◀</button>
+        <button id="z-play" type="button" class="primary small">▶ Abspielen</button>
+        <button id="z-weiter" type="button" class="small" title="Ein Schritt vor">▶|</button>
+        <select id="z-tempo" aria-label="Geschwindigkeit">
+          <option value="2000">langsam (2 s)</option>
+          <option value="1000" selected>normal (1 s)</option>
+          <option value="400">schnell (0,4 s)</option>
+          <option value="100">Zeitraffer (0,1 s)</option>
+        </select>
+        <input id="z-slider" type="range" min="0" max="0" value="0" aria-label="Schritt">
+      </div>
+      <div class="zeitraffer">
+        <span class="hinweis">Anzeige für Teilstrecke</span>
+        <select id="z-von" aria-label="Einstieg der Anzeige"></select>
+        <select id="z-bis" aria-label="Ausstieg der Anzeige"></select>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <svg id="sitzplan" role="group" aria-label="Wagenplan"></svg>
+      <div class="legend">
+        <span><b style="background:var(--avail);border-color:var(--avail-stroke)"></b>frei</span>
+        <span><b style="background:var(--taken);border-color:var(--taken-stroke)"></b>belegt</span>
+        <span><b style="background:#fff;border-color:#ff7b00"></b>neu reserviert im aktuellen Schritt</span>
+        <span><b style="background:var(--group);border-color:var(--group-stroke);border-style:dashed"></b>Gruppenkontingent</span>
+      </div>
+      <svg id="diagramm" role="img" aria-label="Verlauf der Auslastung"></svg>
+      <div id="kennzahlen"></div>
+    </section>
+    <section aria-labelledby="h-log">
+      <h2 id="h-log">Protokoll</h2>
+      <ol id="log" class="log"></ol>
+    </section>
+  </div>
+</main>
+<script src="wagenplan.js"></script>
+<script>
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" })[c]);
+
+const state = {
+  id: null,              /* Id des gespeicherten Szenarios, null = neu */
+  schritte: [],          /* Bearbeitungsschritte mit _id; Storno verweist per _id auf den Bezugsschritt */
+  auswahl: null,         /* Index des gewählten Schritts */
+  geaendert: false,
+  wagen: null,           /* Wagen-Daten (Halte) */
+  position: 0,           /* Anzahl ausgeführter Schritte der Wiedergabe */
+  ergebnisse: [],        /* Ergebnis je ausgeführtem Schritt */
+  laeuft: false,
+  lauf: 0,               /* erhöht sich bei jedem Abbruch, beendet laufende Schleifen */
+  zurueckgesetzt: false
+};
+let uidZaehler = 0;
+const uid = () => ++uidZaehler;
+
+async function api(path, options) {
+  const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
+  const body = res.status === 204 ? {} : await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(body.fehler || body.title || ("Fehler " + res.status)), { status: res.status });
+  return body;
+}
+
+function melden(text, art) {
+  const el = $("msg");
+  el.textContent = text || "";
+  el.className = art || "";
+}
+
+async function absichern(fn) {
+  try { await fn(); } catch (e) { melden(e.message, "err"); }
+}
+
+function markiereGeaendert(wert = true) {
+  state.geaendert = wert;
+  $("dirty").textContent = wert ? "● ungespeichert" : "";
+}
+window.addEventListener("beforeunload", (e) => { if (state.geaendert) { e.preventDefault(); e.returnValue = ""; } });
+
+/* ---------- Schritte ---------- */
+
+function neueAnfrage() {
+  return {
+    _id: uid(), typ: "ANFRAGE", bezeichnung: "",
+    anfrage: { gruppengroesse: 1, wuenschtRuhezone: false,
+      wuenschtRollstuhlplatz: false, wuenschtFahrradplatz: false, mitKindern: false,
+      einstiegHalt: 0, ausstiegHalt: state.wagen ? state.wagen.halte.length - 1 : 1, anfragezeitpunkt: null }
+  };
+}
+
+function zusammenfassung(s, i) {
+  if (s.typ === "STORNO") {
+    const bezug = state.schritte.find((x) => x._id === s.bezug);
+    return `Storno von Schritt ${bezug ? state.schritte.indexOf(bezug) + 1 : "?"}`;
+  }
+  const a = s.anfrage, halte = state.wagen ? state.wagen.halte : [];
+  const flags = [a.wuenschtRuhezone && "Ruhezone",
+    a.mitKindern && "Kinder", a.wuenschtRollstuhlplatz && "Rollstuhl", a.wuenschtFahrradplatz && "Fahrrad"].filter(Boolean);
+  return `${a.gruppengroesse} Pers. · ${halte[a.einstiegHalt] ?? a.einstiegHalt} → ${halte[a.ausstiegHalt] ?? a.ausstiegHalt}` + (flags.length ? " · " + flags.join(", ") : "");
+}
+
+function zeichneSchritte() {
+  $("schritte").innerHTML = state.schritte.length
+    ? state.schritte.map((s, i) => `<li data-i="${i}" class="${i === state.auswahl ? "aktiv" : ""}"><span class="badge">${i + 1}</span>
+        <span>${esc(s.bezeichnung) || (s.typ === "STORNO" ? "Storno" : "Anfrage")}<small>${esc(zusammenfassung(s, i))}</small></span></li>`).join("")
+    : `<li class="hinweis">Noch keine Schritte. Mit „+ Anfrage“ beginnen.</li>`;
+  $("z-slider").max = state.schritte.length;
+  zeichneEditor();
+}
+
+function optionen(werte, aktuell) {
+  return werte.map((w, i) => `<option value="${i}" ${i === aktuell ? "selected" : ""}>${esc(w)}</option>`).join("");
+}
+
+function zeichneEditor() {
+  const el = $("editor");
+  const s = state.schritte[state.auswahl];
+  if (!s) { el.innerHTML = ""; return; }
+  const halte = state.wagen.halte;
+  if (s.typ === "STORNO") {
+    const kandidaten = state.schritte.slice(0, state.auswahl).map((x, i) => ({ x, i })).filter((k) => k.x.typ === "ANFRAGE");
+    el.innerHTML = `<label>Bezeichnung</label><input data-f="bezeichnung" type="text" value="${esc(s.bezeichnung)}" style="width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font:inherit">
+      <label>Storniert Schritt</label>
+      <select data-f="bezug">${kandidaten.length ? kandidaten.map((k) => `<option value="${k.x._id}" ${k.x._id === s.bezug ? "selected" : ""}>${k.i + 1}: ${esc(k.x.bezeichnung || zusammenfassung(k.x, k.i))}</option>`).join("") : `<option value="">(kein früherer Anfrageschritt)</option>`}</select>`;
+    return;
+  }
+  const a = s.anfrage;
+  const cb = (f, text) => `<label style="display:flex;gap:6px;align-items:center;margin:2px 0;color:var(--text)"><input type="checkbox" data-a="${f}" ${a[f] ? "checked" : ""}> ${text}</label>`;
+  const when = a.anfragezeitpunkt ? new Date(a.anfragezeitpunkt).toISOString().slice(0, 16) : "";
+  el.innerHTML = `<label>Bezeichnung</label><input data-f="bezeichnung" type="text" value="${esc(s.bezeichnung)}" style="width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font:inherit">
+    <div class="row2"><div><label>Einstieg</label><select data-a="einstiegHalt">${optionen(halte.slice(0, -1), a.einstiegHalt)}</select></div>
+    <div><label>Ausstieg</label><select data-a="ausstiegHalt">${halte.map((h, i) => i > a.einstiegHalt ? `<option value="${i}" ${i === a.ausstiegHalt ? "selected" : ""}>${esc(h)}</option>` : "").join("")}</select></div></div>
+    <label>Personen (1–8)</label><input data-a="gruppengroesse" type="number" min="1" max="8" value="${a.gruppengroesse}">
+    <div class="checks">${cb("wuenschtRuhezone", "Ruhezone")}
+      ${cb("mitKindern", "Familie mit Kindern")}${cb("wuenschtRollstuhlplatz", "Rollstuhlplatz")}${cb("wuenschtFahrradplatz", "Fahrradstellplatz")}</div>
+    <label>Zeitpunkt der Anfrage (UTC, leer = jetzt)</label><input data-a="anfragezeitpunkt" type="datetime-local" value="${when}">`;
+}
+
+$("editor").addEventListener("change", (e) => {
+  const s = state.schritte[state.auswahl];
+  const t = e.target;
+  if (!s) return;
+  if (t.dataset.f === "bezeichnung") s.bezeichnung = t.value;
+  else if (t.dataset.f === "bezug") s.bezug = t.value ? Number(t.value) : null;
+  else if (t.dataset.a) {
+    const f = t.dataset.a;
+    if (t.type === "checkbox") s.anfrage[f] = t.checked;
+    else if (f === "anfragezeitpunkt") s.anfrage[f] = t.value ? new Date(t.value + "Z").toISOString() : null;
+    else s.anfrage[f] = Number(t.value);
+    if (f === "wuenschtRuhezone" && t.checked) s.anfrage.mitKindern = false;
+    if (f === "mitKindern" && t.checked) s.anfrage.wuenschtRuhezone = false;
+    if (f === "einstiegHalt" && s.anfrage.ausstiegHalt <= s.anfrage.einstiegHalt) s.anfrage.ausstiegHalt = s.anfrage.einstiegHalt + 1;
+    if (f === "gruppengroesse") s.anfrage.gruppengroesse = Math.min(8, Math.max(1, s.anfrage.gruppengroesse || 1));
+  }
+  markiereGeaendert();
+  zeichneSchritte();
+});
+
+$("schritte").addEventListener("click", (e) => {
+  const li = e.target.closest("li[data-i]");
+  if (li) { state.auswahl = Number(li.dataset.i); zeichneSchritte(); }
+});
+
+function einfuegen(schritt) {
+  const pos = state.auswahl === null ? state.schritte.length : state.auswahl + 1;
+  state.schritte.splice(pos, 0, schritt);
+  state.auswahl = pos;
+  markiereGeaendert();
+  zeichneSchritte();
+}
+
+$("btn-add-anfrage").addEventListener("click", () => einfuegen(neueAnfrage()));
+$("btn-add-storno").addEventListener("click", () => {
+  const frueher = state.schritte.slice(0, state.auswahl === null ? state.schritte.length : state.auswahl + 1).filter((x) => x.typ === "ANFRAGE");
+  if (!frueher.length) { melden("Ein Storno braucht einen früheren Anfrageschritt.", "err"); return; }
+  einfuegen({ _id: uid(), typ: "STORNO", bezeichnung: "", bezug: frueher[frueher.length - 1]._id });
+});
+$("btn-dupl").addEventListener("click", () => {
+  const s = state.schritte[state.auswahl];
+  if (s) einfuegen({ ...JSON.parse(JSON.stringify(s)), _id: uid() });
+});
+$("btn-del").addEventListener("click", () => {
+  const s = state.schritte[state.auswahl];
+  if (!s) return;
+  if (state.schritte.some((x) => x.typ === "STORNO" && x.bezug === s._id)) { melden("Der Schritt wird von einem Storno-Schritt referenziert.", "err"); return; }
+  state.schritte.splice(state.auswahl, 1);
+  state.auswahl = state.schritte.length ? Math.min(state.auswahl, state.schritte.length - 1) : null;
+  markiereGeaendert();
+  zeichneSchritte();
+});
+
+/* Verschieben ist nur erlaubt, wenn jeder Storno danach noch hinter seinem Bezugsschritt steht */
+function verschieben(delta) {
+  const i = state.auswahl, j = i + delta;
+  if (i === null || j < 0 || j >= state.schritte.length) return;
+  const neu = state.schritte.slice();
+  [neu[i], neu[j]] = [neu[j], neu[i]];
+  const gueltig = neu.every((s, k) => s.typ !== "STORNO" || neu.findIndex((x) => x._id === s.bezug) < k && neu.findIndex((x) => x._id === s.bezug) >= 0);
+  if (!gueltig) { melden("Ein Storno muss hinter seinem Anfrageschritt stehen.", "err"); return; }
+  state.schritte = neu;
+  state.auswahl = j;
+  markiereGeaendert();
+  zeichneSchritte();
+}
+$("btn-hoch").addEventListener("click", () => verschieben(-1));
+$("btn-runter").addEventListener("click", () => verschieben(1));
+
+/* ---------- Laden und Speichern ---------- */
+
+function alsServerSzenario() {
+  return {
+    name: $("name").value.trim(), beschreibung: $("beschreibung").value, wagenId: $("wagen").value,
+    schritte: state.schritte.map((s) => s.typ === "STORNO"
+      ? { typ: "STORNO", bezeichnung: s.bezeichnung || null, bezugSchritt: state.schritte.findIndex((x) => x._id === s.bezug) + 1 }
+      : { typ: "ANFRAGE", bezeichnung: s.bezeichnung || null, anfrage: { ...s.anfrage, vormerkToken: null } })
+  };
+}
+
+function vomServerSzenario(sz) {
+  const schritte = sz.schritte.map((s) => ({ _id: uid(), typ: s.typ, bezeichnung: s.bezeichnung || "", anfrage: s.anfrage ? { ...s.anfrage } : undefined, bezugNummer: s.bezugSchritt }));
+  schritte.forEach((s) => { if (s.typ === "STORNO") { s.bezug = schritte[s.bezugNummer - 1]._id; } delete s.bezugNummer; });
+  return schritte;
+}
+
+async function listeLaden(auswahlId) {
+  const liste = await api("/api/v1/szenarien");
+  $("liste").innerHTML = liste.map((s) => `<option value="${esc(s.id)}" ${s.id === auswahlId ? "selected" : ""}>${esc(s.name)} (${s.schritte} Schritte, ${esc(s.wagenId)})</option>`).join("");
+}
+
+async function wagenLaden(id) {
+  state.wagen = await api(`/api/v1/wagen/${id}`);
+  $("z-von").innerHTML = optionen(state.wagen.halte.slice(0, -1), 0);
+  fuelleBis();
+}
+
+function fuelleBis() {
+  const von = Number($("z-von").value || 0);
+  $("z-bis").innerHTML = state.wagen.halte.map((h, i) => i > von ? `<option value="${i}">${esc(h)}</option>` : "").join("");
+  $("z-bis").value = state.wagen.halte.length - 1;
+}
+
+async function szenarioOeffnen(sz) {
+  anhalten();
+  state.id = sz.id || null;
+  $("name").value = sz.name;
+  $("beschreibung").value = sz.beschreibung || "";
+  await wagenLaden(sz.wagenId);
+  $("wagen").value = sz.wagenId;
+  state.schritte = vomServerSzenario(sz);
+  state.auswahl = state.schritte.length ? 0 : null;
+  state.position = 0;
+  state.ergebnisse = [];
+  markiereGeaendert(false);
+  zeichneSchritte();
+  melden("");
+  await anzeigeAktualisieren(true);
+}
+
+async function speichern(alsKopie) {
+  const sz = alsServerSzenario();
+  if (!sz.name) throw new Error("Bitte einen Namen angeben.");
+  const gespeichert = state.id && !alsKopie
+    ? await api(`/api/v1/szenarien/${state.id}`, { method: "PUT", body: JSON.stringify(sz) })
+    : await api("/api/v1/szenarien", { method: "POST", body: JSON.stringify(sz) });
+  state.id = gespeichert.id;
+  markiereGeaendert(false);
+  await listeLaden(state.id);
+  melden(`Gespeichert als „${gespeichert.name}“ (${gespeichert.id}.json).`, "ok");
+}
+
+$("btn-speichern").addEventListener("click", () => absichern(() => speichern(false)));
+$("btn-kopie").addEventListener("click", () => absichern(() => speichern(true)));
+$("btn-laden").addEventListener("click", () => absichern(async () => {
+  const id = $("liste").value;
+  if (!id) throw new Error("Bitte ein Szenario auswählen.");
+  if (state.geaendert && !confirm("Ungespeicherte Änderungen verwerfen?")) return;
+  await szenarioOeffnen(await api(`/api/v1/szenarien/${id}`));
+}));
+$("btn-neu").addEventListener("click", () => absichern(async () => {
+  if (state.geaendert && !confirm("Ungespeicherte Änderungen verwerfen?")) return;
+  await szenarioOeffnen({ id: null, name: "Neues Szenario", beschreibung: "", wagenId: $("wagen").value || state.wagen.id, schritte: [] });
+  markiereGeaendert(true);
+}));
+$("btn-loeschen").addEventListener("click", () => absichern(async () => {
+  const id = $("liste").value;
+  if (!id || !confirm(`Szenario „${id}“ löschen?`)) return;
+  await api(`/api/v1/szenarien/${id}`, { method: "DELETE" });
+  if (state.id === id) state.id = null;
+  await listeLaden(state.id);
+  melden("Gelöscht.", "ok");
+}));
+for (const id of ["name", "beschreibung"]) $(id).addEventListener("input", () => markiereGeaendert());
+$("wagen").addEventListener("change", () => absichern(async () => {
+  await wagenLaden($("wagen").value);
+  state.schritte.forEach((s) => { if (s.anfrage) { s.anfrage.einstiegHalt = 0; s.anfrage.ausstiegHalt = state.wagen.halte.length - 1; } });
+  state.position = 0; state.ergebnisse = [];
+  markiereGeaendert();
+  zeichneSchritte();
+  await anzeigeAktualisieren(true);
+}));
+
+/* ---------- Zeitraffer ---------- */
+
+function anhalten() {
+  state.lauf++;
+  state.laeuft = false;
+  $("z-play").textContent = "▶ Abspielen";
+}
+
+async function wagenZuruecksetzen() {
+  if (!state.zurueckgesetzt && !confirm(`Die Wiedergabe bucht live auf Wagen ${state.wagen.id}. Alle vorhandenen Reservierungen dieses Wagens werden dafür gelöscht. Fortfahren?`)) {
+    throw new Error("Wiedergabe abgebrochen.");
+  }
+  state.zurueckgesetzt = true;
+  await api(`/api/v1/wagen/${state.wagen.id}/reservierungen`, { method: "DELETE" });
+  state.ergebnisse = [];
+  state.position = 0;
+}
+
+async function schrittAusfuehren(i) {
+  const s = state.schritte[i];
+  const w = state.wagen.id;
+  let ergebnis;
+  if (s.typ === "STORNO") {
+    const bezugIndex = state.schritte.findIndex((x) => x._id === s.bezug);
+    const bezug = state.ergebnisse[bezugIndex];
+    if (bezug && bezug.ok) {
+      await api(`/api/v1/wagen/${w}/reservierungen/${bezug.reservierungId}`, { method: "DELETE" });
+      ergebnis = { ok: true, text: `Schritt ${bezugIndex + 1} storniert (${bezug.sitzIds.join(", ")})`, sitzIds: [] };
+    }
+    else ergebnis = { ok: false, text: `Schritt ${bezugIndex + 1} war nicht erfolgreich, nichts zu stornieren`, sitzIds: [] };
+  }
+  else {
+    const plan = await api(`/api/v1/wagen/${w}/vorschlag`, { method: "POST", body: JSON.stringify({ ...s.anfrage, vormerkToken: null }) });
+    if (!plan.vorgeschlagen.length) ergebnis = { ok: false, text: "abgelehnt: " + (plan.meldung || "kein Vorschlag"), sitzIds: [] };
+    else {
+      const res = await api(`/api/v1/wagen/${w}/bestaetigung`, { method: "POST",
+        body: JSON.stringify({ sitzIds: plan.vorgeschlagen, einstiegHalt: s.anfrage.einstiegHalt, ausstiegHalt: s.anfrage.ausstiegHalt,
+          vormerkToken: plan.vormerkToken, anfragezeitpunkt: s.anfrage.anfragezeitpunkt }) });
+      ergebnis = { ok: true, text: "reserviert: " + res.sitzIds.join(", "), sitzIds: res.sitzIds, reservierungId: res.reservierungId };
+    }
+  }
+  ergebnis.kennzahlen = await api(`/api/v1/wagen/${w}/kennzahlen`);
+  state.ergebnisse[i] = ergebnis;
+  state.position = i + 1;
+}
+
+/* Springt zu Position k; rückwärts wird der Wagen zurückgesetzt und von vorn gebucht */
+async function zuPosition(k, token) {
+  if (k < state.position || state.ergebnisse.length !== state.position) await wagenZuruecksetzen();
+  while (state.position < k) {
+    if (token !== state.lauf) return;
+    await schrittAusfuehren(state.position);
+  }
+}
+
+async function anzeigeAktualisieren(ohneNeu) {
+  if (!state.wagen) return;
+  const q = new URLSearchParams({ einstiegHalt: $("z-von").value || 0, ausstiegHalt: $("z-bis").value || state.wagen.halte.length - 1, gruppengroesse: 1 });
+  const plan = await api(`/api/v1/wagen/${state.wagen.id}/sitzplan?${q}`);
+  const letzter = state.ergebnisse[state.position - 1];
+  const neu = !ohneNeu && letzter ? new Set(letzter.sitzIds) : new Set();
+  Wagenplan.zeichnen($("sitzplan"), plan, { neu });
+  zeichneStatus();
+  zeichneDiagramm();
+  zeichneLog();
+  $("z-slider").value = state.position;
+}
+
+function zeichneStatus() {
+  const n = state.schritte.length;
+  const letzter = state.ergebnisse[state.position - 1];
+  $("status").innerHTML = state.position === 0
+    ? `Bereit. ${n} Schritte. Mit „Abspielen“ beginnt die Wiedergabe auf einem leeren Wagen.`
+    : `Schritt <b>${state.position}/${n}</b>: ${esc(state.schritte[state.position - 1].bezeichnung || (state.schritte[state.position - 1].typ === "STORNO" ? "Storno" : "Anfrage"))} → <span class="${letzter.ok ? "ok" : "fail"}">${esc(letzter.text)}</span>`;
+  const k = letzter ? letzter.kennzahlen : null;
+  if (!k) { $("kennzahlen").textContent = ""; return; }
+  const halte = state.wagen.halte;
+  const abgelehnt = state.ergebnisse.filter((e) => e && !e.ok).length;
+  $("kennzahlen").innerHTML = `Auslastung gesamt <b>${k.auslastungGesamt.toFixed(1)} %</b> · je Teilstrecke: ${k.auslastungJeTeilstrecke.map((a, i) => `${esc(halte[i])}→${esc(halte[i + 1])} ${a.toFixed(0)} %`).join(", ")}<br>
+    Reservierungen ${k.reservierungen} · abgelehnt ${abgelehnt} · Gruppen zusammenhängend ${k.gruppenZusammenhaengend}/${k.gruppen}`;
+}
+
+function zeichneDiagramm() {
+  const svg = $("diagramm"), W = 600, H = 130, L = 34, B = 20, T = 8, R = 8;
+  const n = Math.max(state.schritte.length, 1);
+  const x = (i) => L + (W - L - R) * (i / n), y = (v) => T + (H - T - B) * (1 - v / 100);
+  let out = [0, 50, 100].map((v) => `<line x1="${L}" y1="${y(v)}" x2="${W - R}" y2="${y(v)}" stroke="var(--border)"/><text x="${L - 4}" y="${y(v) + 4}" text-anchor="end" font-size="10" fill="var(--muted)">${v} %</text>`).join("");
+  out += `<text x="${W - R}" y="${H - 4}" text-anchor="end" font-size="10" fill="var(--muted)">Schritt</text>`;
+  const punkte = [[0, 0]].concat(state.ergebnisse.slice(0, state.position).map((e, i) => [i + 1, e.kennzahlen.auslastungGesamt]));
+  out += `<polyline fill="none" stroke="var(--accent)" stroke-width="2" points="${punkte.map(([i, v]) => `${x(i)},${y(v)}`).join(" ")}"/>`;
+  state.ergebnisse.slice(0, state.position).forEach((e, i) => {
+    out += e.ok
+      ? `<circle cx="${x(i + 1)}" cy="${y(e.kennzahlen.auslastungGesamt)}" r="3" fill="var(--accent)"/>`
+      : `<g stroke="var(--danger)" stroke-width="2"><line x1="${x(i + 1) - 4}" y1="${y(e.kennzahlen.auslastungGesamt) - 4}" x2="${x(i + 1) + 4}" y2="${y(e.kennzahlen.auslastungGesamt) + 4}"/><line x1="${x(i + 1) - 4}" y1="${y(e.kennzahlen.auslastungGesamt) + 4}" x2="${x(i + 1) + 4}" y2="${y(e.kennzahlen.auslastungGesamt) - 4}"/></g>`;
+  });
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.innerHTML = out;
+}
+
+function zeichneLog() {
+  $("log").innerHTML = state.schritte.map((s, i) => {
+    const e = state.ergebnisse[i];
+    const jetzt = i === state.position - 1;
+    return `<li data-i="${i}" class="${jetzt ? "jetzt" : ""}">${i + 1}. ${esc(s.bezeichnung || (s.typ === "STORNO" ? "Storno" : "Anfrage"))}
+      <span class="hinweis">(${esc(zusammenfassung(s, i))})</span> ${e ? `<span class="${e.ok ? "ok" : "fail"}">${e.ok ? "✓" : "✗"} ${esc(e.text)}</span>` : ""}</li>`;
+  }).join("") || `<li class="hinweis">Keine Schritte.</li>`;
+}
+
+$("log").addEventListener("click", (e) => {
+  const li = e.target.closest("li[data-i]");
+  if (li) absichern(async () => { anhalten(); await zuPosition(Number(li.dataset.i) + 1, state.lauf); await anzeigeAktualisieren(); });
+});
+
+async function abspielen() {
+  if (state.laeuft) { anhalten(); return; }
+  const token = ++state.lauf;
+  state.laeuft = true;
+  $("z-play").textContent = "⏸ Pause";
+  try {
+    if (state.position >= state.schritte.length) await wagenZuruecksetzen();
+    if (state.position === 0 && state.ergebnisse.length === 0) await wagenZuruecksetzen();
+    while (token === state.lauf && state.position < state.schritte.length) {
+      await schrittAusfuehren(state.position);
+      await anzeigeAktualisieren();
+      await new Promise((r) => setTimeout(r, Number($("z-tempo").value)));
+    }
+  }
+  catch (e) { melden(e.message, "err"); }
+  finally { if (token === state.lauf) anhalten(); }
+}
+
+$("z-play").addEventListener("click", () => abspielen());
+$("z-start").addEventListener("click", () => absichern(async () => { anhalten(); await wagenZuruecksetzen(); await anzeigeAktualisieren(true); }));
+$("z-weiter").addEventListener("click", () => absichern(async () => {
+  anhalten();
+  if (state.position >= state.schritte.length) return;
+  if (state.position === 0 && state.ergebnisse.length === 0) await wagenZuruecksetzen();
+  await schrittAusfuehren(state.position);
+  await anzeigeAktualisieren();
+}));
+$("z-zurueck").addEventListener("click", () => absichern(async () => {
+  anhalten();
+  if (state.position === 0) return;
+  await zuPosition(state.position - 1, state.lauf);
+  await anzeigeAktualisieren(state.position === 0);
+}));
+$("z-slider").addEventListener("change", () => absichern(async () => {
+  anhalten();
+  await zuPosition(Number($("z-slider").value), state.lauf);
+  await anzeigeAktualisieren(state.position === 0);
+}));
+$("z-von").addEventListener("change", () => { fuelleBis(); absichern(() => anzeigeAktualisieren()); });
+$("z-bis").addEventListener("change", () => absichern(() => anzeigeAktualisieren()));
+
+/* ---------- Start ---------- */
+
+absichern(async () => {
+  const wagen = await api("/api/v1/wagen");
+  $("wagen").innerHTML = wagen.map((w) => `<option value="${esc(w.id)}">${esc(w.id)} · ${esc(w.zugnummer)}</option>`).join("");
+  await listeLaden(null);
+  const liste = await api("/api/v1/szenarien");
+  if (liste.length) {
+    $("liste").value = liste[0].id;
+    await szenarioOeffnen(await api(`/api/v1/szenarien/${liste[0].id}`));
+  }
+  else await szenarioOeffnen({ id: null, name: "Neues Szenario", beschreibung: "", wagenId: wagen[0].id, schritte: [] });
+});
+</script>
+</body>
+</html>

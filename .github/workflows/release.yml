@@ -73,18 +73,18 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           NAME="seat-allocator-${VERSION}"
           mkdir -p "dist/${NAME}"
-          cp -r target/quarkus-app/. "dist/${NAME}/"
-          cp -r szenarien "dist/${NAME}/szenarien"
+          cp -r simulator/target/quarkus-app/. "dist/${NAME}/"
+          cp -r simulator/szenarien "dist/${NAME}/szenarien"
           cp README.md "dist/${NAME}/"
           (cd dist && zip -qr "${NAME}.zip" "${NAME}")
           rm -rf "dist/${NAME}"
-          cp "target/generated-docs/${NAME}.pdf" "target/generated-docs/${NAME}.html" dist/
+          cp "simulator/target/generated-docs/${NAME}.pdf" "simulator/target/generated-docs/${NAME}.html" dist/
 
       # Plattformunabhängiges Uber-Jar mit H2 und Testdaten plus Startskripten (Tests liefen oben bereits)
       - name: Demo bauen
         run: |
           mvn -B -ntp -Pdemo package -DskipTests
-          cp "target/seat-allocator-demo-${{ steps.version.outputs.version }}.zip" dist/
+          cp "simulator/target/seat-allocator-demo-${{ steps.version.outputs.version }}.zip" dist/
           ls -l dist
 
       - name: Artefakte hochladen
