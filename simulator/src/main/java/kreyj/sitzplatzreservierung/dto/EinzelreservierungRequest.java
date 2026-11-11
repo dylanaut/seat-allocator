@@ -1,0 +1,15 @@
+package kreyj.sitzplatzreservierung.dto;
+
+import jakarta.validation.constraints.Min;
+import java.time.Instant;
+
+public record EinzelreservierungRequest(
+    boolean wuenschtRuhezone,
+    @Min(0) Integer einstiegHalt,
+    @Min(0) Integer ausstiegHalt,
+    Instant anfragezeitpunkt
+) {
+    public Instant wirksamerZeitpunkt() {
+        return anfragezeitpunkt != null ? anfragezeitpunkt : Instant.now();
+    }
+}

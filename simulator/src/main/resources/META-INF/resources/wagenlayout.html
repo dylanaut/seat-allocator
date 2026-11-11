@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wagenlayout</title>
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="wagenlayout.css">
+</head>
+<body>
+<header><h1>Sitzplatzreservierung</h1>
+  <nav><a href="index.html">Reservieren</a><a href="szenarien.html">Szenarien</a><a href="wagenlayout.html" aria-current="page">Wagenlayout</a></nav></header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <pattern id="steps" width=".12" height=".12" patternUnits="userSpaceOnUse"><rect width=".12" height=".12" fill="var(--floor)"/><path d="M0 .06H.12" stroke="var(--muted)" stroke-width=".02"/></pattern>
+  <pattern id="ramp" width=".16" height=".16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width=".16" height=".16" fill="var(--floor)"/><path d="M0 0V.16" stroke="var(--muted)" stroke-width=".015"/></pattern>
+</defs></svg>
+<main>
+  <div class="stack">
+    <section>
+      <h2>Ansicht</h2>
+      <label for="layout">Wagenlayout</label><select id="layout"></select>
+      <label for="ebene" id="ebenel">Ebene</label><select id="ebene"></select>
+      <label for="von">Von Halt</label><select id="von"></select>
+      <label for="nach">Nach Halt</label><select id="nach"></select>
+      <label for="faerbung">Sitzfärbung</label>
+      <select id="faerbung"><option value="STANDARD">Standard</option><option value="KLASSE">Klasse</option><option value="BEREICH">Bereich</option></select>
+      <div class="checks" id="schichten">
+        <label><input type="checkbox" data-schicht="zone" checked> Zonen</label>
+        <label><input type="checkbox" data-schicht="flaeche" checked> Flächen</label>
+        <label><input type="checkbox" data-schicht="sitzbereich"> Sitzbereiche</label>
+        <label><input type="checkbox" data-schicht="sitzmerkmal"> Sitzmerkmale</label>
+        <label><input type="checkbox" data-schicht="ausstattung" checked> Ausstattung</label>
+        <label><input type="checkbox" data-schicht="zeichenhilfe"> Zeichenhilfen</label>
+        <label><input type="checkbox" id="ohnePersonal"> Personal ausblenden</label>
+      </div>
+      <p id="msg"></p>
+    </section>
+    <section><h2>Auswahl</h2><div id="auswahl" class="empty">Sitz anklicken.</div></section>
+    <section><h2>Belegungen</h2><ul class="hist bel" id="belegungen"></ul></section>
+  </div>
+  <section>
+    <div class="scroll"><svg id="plan" role="img" aria-label="Draufsicht des Wagens"></svg></div>
+    <div class="legende">
+      <span><b class="frei"></b>frei</span><span><b class="teilweise"></b>teilweise belegt</span><span><b class="vorgemerkt"></b>vorgemerkt</span>
+      <span><b class="belegt"></b>belegt</span><span><b class="gesperrt"></b>gesperrt</span><span><b class="erste"></b>1. Klasse (Färbung Klasse)</span>
+    </div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id), NS = "http://www.w3.org/2000/svg", API = "/api/v1/wagenlayouts";
+let ansicht, halte = [], piktogramme = {}, gewaehlt = null;
+
+async function abrufen(url, optionen) {
+  const antwort = await fetch(url, optionen);
+  if (!antwort.ok) throw new Error((await antwort.json().catch(() => ({}))).fehler || antwort.status);
+  return antwort.status === 204 ? null : antwort.json();
+}
+function melden(text, fehler) { $("msg").textContent = text || ""; $("msg").className = fehler ? "err" : "ok"; }
+function neu(tag, attribute, eltern) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attribute)) e.setAttribute(k, v);
+  return eltern ? eltern.appendChild(e) : e;
+}
+function optionen(select, liste) { select.replaceChildren(...liste.map(([wert, text]) => new Option(text, wert))); }
+const layoutUrl = () => `${API}/${encodeURIComponent($("layout").value)}`;
+const abschnitt = () => $("von").value !== "" && $("nach").value !== "" ? { von: +$("von").value, nach: +$("nach").value } : null;
+
+async function laden(ebeneWunsch) {
+  const q = new URLSearchParams({ faerbung: $("faerbung").value }), a = abschnitt();
+  if (a) { q.set("von", a.von); q.set("nach", a.nach); }
+  [ansicht] = await Promise.all([abrufen(`${layoutUrl()}/ansicht?${q}`), belegungenLaden()]);
+  const ebene = ebeneWunsch ?? $("ebene").value;
+  optionen($("ebene"), [["", "Alle Ebenen"], ...ansicht.ebenen.map((e) => [e, e])]);
+  $("ebene").value = ansicht.ebenen.includes(ebene) ? ebene : ansicht.ebenen[0] ?? "";
+  $("ebenel").hidden = $("ebene").hidden = ansicht.ebenen.length < 2;
+  zeichnen();
+}
+function zeichnen() {
+  const svg = $("plan");
+  svg.replaceChildren();
+  svg.setAttribute("viewBox", `-.35 -.35 ${ansicht.breiteM + .7} ${ansicht.hoeheM + .7}`);
+  for (const f of ansicht.formen) {
+    const g = neu("g", { class: f.stile.join(" "), "data-id": f.id, "data-ebene": f.ebene ?? "" }, svg);
+    if (f.pfad) neu("path", { d: f.pfad, "fill-rule": "evenodd" }, g);
+    if (f.piktogramm) {
+      const p = f.piktogramm;
+      neu("g", { class: "piktogramm", transform: `translate(${p.position.x - p.groesse / 2} ${p.position.y - p.groesse / 2}) scale(${p.groesse / 24})` }, g)
+        .innerHTML = piktogramme[p.art];
+    }
+    if (f.beschriftung) {
+      const b = f.beschriftung;
+      neu("text", { x: b.position.x, y: b.position.y, "font-size": b.groesse, "text-anchor": "middle" }, g).textContent = b.text;
+    }
+  }
+  filtern();
+}
+function filtern() {
+  const ebene = $("ebene").value, aus = new Set([...document.querySelectorAll("[data-schicht]")].filter((c) => !c.checked).map((c) => c.dataset.schicht));
+  $("plan").classList.toggle("ohne-personal", $("ohnePersonal").checked);
+  for (const g of $("plan").querySelectorAll("[data-id]")) {
+    g.classList.toggle("eb-aus", !!ebene && !!g.dataset.ebene && g.dataset.ebene !== ebene);
+    g.classList.toggle("sch-aus", [...aus].some((s) => g.classList.contains(`schicht-${s}`)));
+  }
+}
+function auswaehlen(g) {
+  gewaehlt?.classList.remove("gewaehlt");
+  gewaehlt = g;
+  g.classList.add("gewaehlt");
+  const form = ansicht.formen.find((f) => f.id === g.dataset.id), tabelle = document.createElement("table");
+  tabelle.className = "details";
+  for (const [k, v] of Object.entries(form.details ?? {})) {
+    const zeile = tabelle.insertRow();
+    zeile.insertCell().textContent = k;
+    zeile.insertCell().textContent = v;
+  }
+  const knopf = document.createElement("button");
+  knopf.className = "primary";
+  knopf.textContent = "Für gewählten Abschnitt reservieren";
+  knopf.disabled = !abschnitt() || !form.details.Platz;
+  knopf.onclick = () => reservieren(+form.details.Platz);
+  $("auswahl").className = "";
+  $("auswahl").replaceChildren(tabelle, knopf);
+}
+async function reservieren(sitzNummer) {
+  const a = abschnitt();
+  try {
+    await abrufen(`${layoutUrl()}/belegungen`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sitzNummer, vonHalt: a.von, nachHalt: a.nach }) });
+    melden(`Platz ${sitzNummer} von ${halte[a.von]} nach ${halte[a.nach]} reserviert.`);
+  } catch (e) { melden(e.message, true); }
+  await laden();
+}
+async function belegungenLaden() {
+  const liste = await abrufen(`${layoutUrl()}/belegungen`);
+  $("belegungen").replaceChildren(...liste.map((b) => {
+    const li = document.createElement("li"), knopf = document.createElement("button");
+    li.append(`Platz ${b.sitzNummer}: ${halte[b.abschnitt.vonHalt]} → ${halte[b.abschnitt.nachHalt]} (${b.art})`);
+    knopf.className = "small";
+    knopf.textContent = "Freigeben";
+    knopf.onclick = async () => {
+      try { await abrufen(`${layoutUrl()}/belegungen/${encodeURIComponent(b.reservierungId)}`, { method: "DELETE" }); melden("Freigegeben."); }
+      catch (e) { melden(e.message, true); }
+      await laden();
+    };
+    li.append(knopf);
+    return li;
+  }));
+  if (!liste.length) $("belegungen").innerHTML = "<li class='empty'>Keine Belegungen.</li>";
+}
+
+$("plan").addEventListener("click", (e) => { const g = e.target.closest("g.sitz[data-id]"); if (g) auswaehlen(g); });
+for (const id of ["layout", "von", "nach", "faerbung"]) $(id).addEventListener("change", () => laden());
+$("ebene").addEventListener("change", filtern);
+document.querySelectorAll("[data-schicht], #ohnePersonal").forEach((c) => c.addEventListener("change", filtern));
+
+(async () => {
+  try {
+    [halte, piktogramme] = await Promise.all([abrufen(`${API}/halte`), abrufen(`${API}/piktogramme`)]);
+    optionen($("von"), halte.slice(0, -1).map((h, i) => [i, h]));
+    optionen($("nach"), halte.slice(1).map((h, i) => [i + 1, h]));
+    $("nach").value = halte.length - 1;
+    const layouts = await abrufen(API);
+    optionen($("layout"), layouts.map((l) => [l.kennung, `${l.kennung} (${l.sitzplaetze} Sitze)`]));
+    /*  Vorbelegung über die Adresse: ?layout=...&ebene=...&faerbung=...  */
+    const parameter = new URLSearchParams(location.search), wunsch = parameter.get("layout");
+    $("layout").value = layouts.some((l) => l.kennung === wunsch) ? wunsch : layouts[0].kennung;
+    if (["STANDARD", "KLASSE", "BEREICH"].includes(parameter.get("faerbung"))) $("faerbung").value = parameter.get("faerbung");
+    await laden(parameter.get("ebene"));
+  } catch (e) { melden(e.message, true); }
+})();
+</script>
+</body>
+</html>
