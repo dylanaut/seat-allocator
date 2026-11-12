@@ -8,6 +8,7 @@ import kreyj.sitzplatzreservierung.layout.Wagenelement.Bereich;
 import kreyj.sitzplatzreservierung.layout.Wagenelement.Bereichsart;
 import kreyj.sitzplatzreservierung.layout.Wagenelement.Sitzplatz;
 import kreyj.sitzplatzreservierung.layout.Wagenelement.Tisch;
+import kreyj.sitzplatzreservierung.layout.Wagenansicht.Ausschnitt;
 import kreyj.sitzplatzreservierung.layout.Wagenelement.Zonenflaeche;
 
 import java.math.BigDecimal;
@@ -29,6 +30,13 @@ public final class Sitzplanzeichner {
     /*  Zeichenreihenfolge der Schichten, hinten nach vorn  */
     private static final List<String> SCHICHTEN = List.of("kontur", "zone", "tisch", "platz", "icon");
     private static final double LEHNE_TIEFE = .13;
+
+    /*  Leere Wagenenden werden weggelassen, sobald mehr als MINDEST_KUERZUNG Meter wegfallen; um den Inhalt bleibt RAND Meter frei  */
+    private static final double RAND = .6;
+    private static final double MINDEST_KUERZUNG = 1.0;
+
+    /*  Länge der gepunkteten Brücke, die den Umriss am Schnitt andeutet (zwei Punkte)  */
+    private static final double BRUECKE = .2;
     private static final double ARMLEHNE_BREITE = .06;
 
     private Sitzplanzeichner() {
@@ -49,7 +57,9 @@ public final class Sitzplanzeichner {
         var schichten = new LinkedHashMap<String, List<Form>>();
         SCHICHTEN.forEach((schicht) -> schichten.put(schicht, new ArrayList<>()));
 
-        schichten.get("kontur").add(new Form("kontur", null, pfad(layout.kontur()), stile("kontur", "kontur"), null, null, Map.of()));
+        var ausschnitte = layout.ebenen().stream().map((ebene) -> ausschnitt(layout, ebene, plaetze)).toList();
+        for (var ausschnitt : ausschnitte)
+            zeichneKontur(layout, ausschnitt, schichten.get("kontur"));
         for (var element : layout.elemente()) {
             if (element.nurPersonal())
                 continue;
@@ -70,7 +80,133 @@ public final class Sitzplanzeichner {
         }
 
         var formen = SCHICHTEN.stream().flatMap((schicht) -> schichten.get(schicht).stream()).toList();
-        return new Wagenansicht(layout.laengeM(), layout.breiteM(), layout.ebenen(), formen);
+        return new Wagenansicht(layout.laengeM(), layout.breiteM(), layout.ebenen(), ausschnitte, formen);
+    }
+
+    /*  Längsbereich einer Ebene, in dem Plätze, Tische oder Piktogramme liegen, mit Rand; leere Enden fallen weg  */
+    private static Ausschnitt ausschnitt(Wagenlayout layout, Ebene ebene, Map<String, PlatzBezug> plaetze) {
+        var von = Double.MAX_VALUE;
+        var bis = -Double.MAX_VALUE;
+        for (var element : layout.elemente()) {
+            if (element.ebene() != ebene || element.nurPersonal())
+                continue;
+            switch (element) {
+                case Sitzplatz sitz -> {
+                    von = Math.min(von, sitz.umriss().minX());
+                    bis = Math.max(bis, sitz.umriss().maxX());
+                }
+                case Tisch tisch -> {
+                    von = Math.min(von, tisch.umriss().minX());
+                    bis = Math.max(bis, tisch.umriss().maxX());
+                }
+                case Bereich bereich when piktogramm(bereich.art()).isPresent() -> {
+                    von = Math.min(von, bereich.umriss().minX());
+                    bis = Math.max(bis, bereich.umriss().maxX());
+                }
+                case Ausstattung ausstattung when ausstattung.art() != Ausstattungsart.KUPPLUNG && piktogramm(ausstattung.art()).isPresent() -> {
+                    von = Math.min(von, ausstattung.position().x());
+                    bis = Math.max(bis, ausstattung.position().x());
+                }
+                default -> {
+                }
+            }
+        }
+        if (von > bis)
+            return new Ausschnitt(ebene, 0, layout.laengeM());
+        var links = von - RAND > MINDEST_KUERZUNG ? von - RAND : 0;
+        var rechts = layout.laengeM() - (bis + RAND) > MINDEST_KUERZUNG ? bis + RAND : layout.laengeM();
+        return new Ausschnitt(ebene, links, rechts);
+    }
+
+    /*  Fläche des Wagens im Ausschnitt, der Umriss als offene Linien und an jedem Schnitt eine kurze gepunktete Brücke je Umrisslinie  */
+    private static void zeichneKontur(Wagenlayout layout, Ausschnitt ausschnitt, List<Form> kontur) {
+        var links = ausschnitt.vonXM();
+        var rechts = ausschnitt.bisXM();
+        var flaeche = new StringBuilder();
+        var linien = new StringBuilder();
+        var bruecken = new StringBuilder();
+        for (var ring : layout.kontur().ringe()) {
+            var beschnitten = beschneide(beschneide(ring, links, true), rechts, false);
+            if (beschnitten.size() > 2)
+                flaeche.append(ring(beschnitten));
+
+            var lauf = new ArrayList<Punkt>();
+            for (int i = 0; i < ring.size(); i++) {
+                var strecke = kappe(ring.get(i), ring.get((i + 1) % ring.size()), links, rechts);
+                if (strecke == null) {
+                    linien.append(linie(lauf));
+                    lauf.clear();
+                    continue;
+                }
+                if (!lauf.isEmpty() && !gleich(lauf.getLast(), strecke[0])) {
+                    linien.append(linie(lauf));
+                    lauf.clear();
+                }
+                if (lauf.isEmpty())
+                    lauf.add(strecke[0]);
+                lauf.add(strecke[1]);
+                for (var p : strecke) {
+                    if (links > 0 && Math.abs(p.x() - links) < 1e-6)
+                        bruecken.append("M").append(zahl(p.x())).append(' ').append(zahl(p.y())).append("L").append(zahl(p.x() - BRUECKE)).append(' ').append(zahl(p.y()));
+                    if (rechts < layout.laengeM() && Math.abs(p.x() - rechts) < 1e-6)
+                        bruecken.append("M").append(zahl(p.x())).append(' ').append(zahl(p.y())).append("L").append(zahl(p.x() + BRUECKE)).append(' ').append(zahl(p.y()));
+                }
+            }
+            linien.append(linie(lauf));
+        }
+        kontur.add(new Form("kontur/" + ausschnitt.ebene(), ausschnitt.ebene(), flaeche.toString(), stile("kontur", "kontur-flaeche"), null, null, Map.of()));
+        kontur.add(new Form("kontur-linie/" + ausschnitt.ebene(), ausschnitt.ebene(), linien.toString(), stile("kontur", "kontur-linie"), null, null, Map.of()));
+        if (bruecken.length() > 0)
+            kontur.add(new Form("kontur-bruecke/" + ausschnitt.ebene(), ausschnitt.ebene(), bruecken.toString(), stile("kontur", "kontur-bruecke"), null, null, Map.of()));
+    }
+
+    /*  Sutherland-Hodgman gegen die Gerade x = grenze; behalten wird x >= grenze (links) bzw. x <= grenze (rechts)  */
+    private static List<Punkt> beschneide(List<Punkt> ring, double grenze, boolean links) {
+        var ergebnis = new ArrayList<Punkt>();
+        for (int i = 0; i < ring.size(); i++) {
+            var p = ring.get(i);
+            var q = ring.get((i + 1) % ring.size());
+            var pDrin = links ? p.x() >= grenze : p.x() <= grenze;
+            var qDrin = links ? q.x() >= grenze : q.x() <= grenze;
+            if (pDrin)
+                ergebnis.add(p);
+            if (pDrin != qDrin) {
+                var t = (grenze - p.x()) / (q.x() - p.x());
+                ergebnis.add(new Punkt(grenze, p.y() + t * (q.y() - p.y())));
+            }
+        }
+        return ergebnis;
+    }
+
+    /*  Der Teil der Strecke zwischen den Geraden x = links und x = rechts, null wenn nichts übrig bleibt  */
+    private static Punkt[] kappe(Punkt p, Punkt q, double links, double rechts) {
+        var dx = q.x() - p.x();
+        double t0 = 0, t1 = 1;
+        if (dx == 0) {
+            if (p.x() < links || p.x() > rechts)
+                return null;
+        } else {
+            var ta = (links - p.x()) / dx;
+            var tb = (rechts - p.x()) / dx;
+            t0 = Math.max(0, Math.min(ta, tb));
+            t1 = Math.min(1, Math.max(ta, tb));
+            if (t0 > t1)
+                return null;
+        }
+        return new Punkt[] { new Punkt(p.x() + t0 * dx, p.y() + t0 * (q.y() - p.y())), new Punkt(p.x() + t1 * dx, p.y() + t1 * (q.y() - p.y())) };
+    }
+
+    private static boolean gleich(Punkt a, Punkt b) {
+        return Math.abs(a.x() - b.x()) < 1e-6 && Math.abs(a.y() - b.y()) < 1e-6;
+    }
+
+    private static String linie(List<Punkt> punkte) {
+        if (punkte.size() < 2)
+            return "";
+        var pfad = new StringBuilder();
+        for (int i = 0; i < punkte.size(); i++)
+            pfad.append(i == 0 ? "M" : "L").append(zahl(punkte.get(i).x())).append(' ').append(zahl(punkte.get(i).y()));
+        return pfad.toString();
     }
 
     private static void zeichneSitz(Sitzplatz sitz, PlatzBezug bezug, Map<String, List<Form>> schichten) {

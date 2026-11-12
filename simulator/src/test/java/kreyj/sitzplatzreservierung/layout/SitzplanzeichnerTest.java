@@ -70,4 +70,57 @@ class SitzplanzeichnerTest {
         assertFalse(personal.isEmpty());
         assertTrue(ansicht.formen().stream().noneMatch((f) -> personal.contains(f.id())));
     }
+
+    private static Form form(Wagenansicht ansicht, String praefix, Ebene ebene) {
+        return ansicht.formen().stream().filter((f) -> f.id().equals(praefix + "/" + ebene)).findFirst().orElse(null);
+    }
+
+    private static long anzahl(String text, char zeichen) {
+        return text.chars().filter((c) -> c == zeichen).count();
+    }
+
+    @Test
+    void testLeereWagenendenWerdenJeEbeneWeggelassen() {
+        for (var kennung : new String[] { "Beispiel-Klein", "Beispiel-Mittel", "Beispiel-Gross", "I8080-402" }) {
+            var layout = layout(kennung);
+            var ansicht = Sitzplanzeichner.zeichne(layout, bezuege(layout));
+
+            assertEquals(layout.ebenen(), ansicht.ausschnitte().stream().map(Wagenansicht.Ausschnitt::ebene).toList(), kennung);
+            for (var ausschnitt : ansicht.ausschnitte()) {
+                assertTrue(ausschnitt.vonXM() >= 0 && ausschnitt.vonXM() < ausschnitt.bisXM() && ausschnitt.bisXM() <= layout.laengeM(), kennung);
+                assertTrue(form(ansicht, "kontur", ausschnitt.ebene()) != null && form(ansicht, "kontur-linie", ausschnitt.ebene()) != null, kennung);
+            }
+        }
+    }
+
+    @Test
+    void testKuerzungAmWagenendeMitGepunkteterBruecke() {
+        var layout = layout("Beispiel-Mittel");
+        var ansicht = Sitzplanzeichner.zeichne(layout, bezuege(layout));
+        var ausschnitt = ansicht.ausschnitte().getFirst();
+
+        /*  Links liegen Plätze am Wagenende (keine Kürzung), rechts fallen etwa vier Meter leere Fläche weg  */
+        assertEquals(0, ausschnitt.vonXM());
+        assertTrue(ausschnitt.bisXM() < layout.laengeM() - 1);
+        var bruecke = form(ansicht, "kontur-bruecke", ausschnitt.ebene());
+        assertEquals(2, anzahl(bruecke.pfad(), 'M'), "je eine Brücke für obere und untere Umrisslinie");
+        assertTrue(bruecke.stile().contains("kontur-bruecke"));
+
+        /*  Die Umrisslinie endet am Schnitt, der Wagen wird dort nicht geschlossen  */
+        var maxX = ansicht.formen().stream().filter((f) -> f.id().equals("kontur-linie/" + ausschnitt.ebene())).findFirst().orElseThrow().pfad();
+        assertFalse(maxX.contains("L" + layout.laengeM()), "die Wagenspitze ist nicht mehr gezeichnet");
+    }
+
+    @Test
+    void testDoppelstockHatJeEbeneEinenEigenenAusschnitt() {
+        var layout = layout("Beispiel-Gross");
+        var ansicht = Sitzplanzeichner.zeichne(layout, bezuege(layout));
+
+        assertEquals(3, ansicht.ausschnitte().size());
+        for (var ausschnitt : ansicht.ausschnitte()) {
+            assertTrue(ausschnitt.vonXM() > 5 && ausschnitt.bisXM() < layout.laengeM() - 5, ausschnitt.toString());
+            assertEquals(4, anzahl(form(ansicht, "kontur-bruecke", ausschnitt.ebene()).pfad(), 'M'), "zwei Schnitte mit je zwei Umrisslinien");
+        }
+        assertTrue(ansicht.ausschnitte().stream().map(Wagenansicht.Ausschnitt::vonXM).distinct().count() > 1);
+    }
 }

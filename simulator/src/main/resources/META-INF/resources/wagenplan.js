@@ -6,6 +6,7 @@
 const Wagenplan = (() => {
   const NS = "http://www.w3.org/2000/svg";
   const ansichten = new Map();
+  const PX_JE_METER = 52;
   let piktogramme = null;
 
   const bezeichnung = { FREI: "verfügbar", BELEGT: "belegt", VORGEMERKT: "von anderer Anfrage vorgemerkt", GRUPPENKONTINGENT: "für Gruppen reserviert", SONDERPLATZ: "Sonderplatz, nicht angefordert", ANDERE_ZONE: "andere Zone" };
@@ -31,8 +32,8 @@ const Wagenplan = (() => {
     const ansicht = ansichten.get(wagenId);
 
     svg.replaceChildren();
-    svg.setAttribute("viewBox", `-.35 -.35 ${ansicht.breiteM + .7} ${ansicht.hoeheM + .7}`);
     svg.dataset.wagen = wagenId;
+    svg._ansicht = ansicht;
     svg._plaetze = new Map();
     for (const f of ansicht.formen) {
       const g = neu("g", { class: f.stile.join(" "), "data-id": f.id, "data-ebene": f.ebene ?? "" }, svg);
@@ -63,7 +64,12 @@ const Wagenplan = (() => {
     ebeneZeigen(svg, ebenen[0]);
   }
 
+  /* Zeigt eine Ebene; der Ausschnitt lässt leere Wagenenden weg */
   function ebeneZeigen(svg, ebene) {
+    const a = svg._ansicht, ausschnitt = a.ausschnitte.find((x) => x.ebene === ebene) || { vonXM: 0, bisXM: a.breiteM };
+    const breite = ausschnitt.bisXM - ausschnitt.vonXM + .7;
+    svg.setAttribute("viewBox", `${ausschnitt.vonXM - .35} -.35 ${breite} ${a.hoeheM + .7}`);
+    svg.style.minWidth = Math.round(breite * PX_JE_METER) + "px";
     for (const g of svg.querySelectorAll("[data-ebene]"))
       g.classList.toggle("eb-aus", !!g.dataset.ebene && g.dataset.ebene !== ebene);
   }
