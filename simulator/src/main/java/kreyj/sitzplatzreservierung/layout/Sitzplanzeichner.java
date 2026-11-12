@@ -29,7 +29,6 @@ public final class Sitzplanzeichner {
 
     /*  Zeichenreihenfolge der Schichten, hinten nach vorn  */
     private static final List<String> SCHICHTEN = List.of("kontur", "zone", "tisch", "platz", "icon");
-    private static final double LEHNE_TIEFE = .13;
 
     /*  Leere Wagenenden werden weggelassen, sobald mehr als MINDEST_KUERZUNG Meter wegfallen; um den Inhalt bleibt RAND Meter frei  */
     private static final double RAND = .6;
@@ -37,7 +36,6 @@ public final class Sitzplanzeichner {
 
     /*  Länge der gepunkteten Brücke, die den Umriss am Schnitt andeutet (zwei Punkte)  */
     private static final double BRUECKE = .2;
-    private static final double ARMLEHNE_BREITE = .06;
 
     private Sitzplanzeichner() {
     }
@@ -225,30 +223,6 @@ public final class Sitzplanzeichner {
         var mitte = sitz.umriss().mitte();
         schichten.get("platz").add(new Form(bezug != null ? bezug.platzId() : sitz.id(), sitz.ebene(), pfad(sitz.umriss()), List.copyOf(stile),
                 bezug != null ? new Beschriftung(bezug.bezeichnung(), new Punkt(mitte.x(), mitte.y() + .08), bezug.bezeichnung().length() > 2 ? .21 : .27) : null, null, details));
-
-        /*  Rückenlehne mit Armlehnen als U-Form an der Rückseite; f zeigt zur Lehne, v quer dazu  */
-        var winkel = Math.toRadians(sitz.lehnenrichtungGrad());
-        var fx = Math.sin(winkel);
-        var fy = Math.cos(winkel);
-        var vx = -fy;
-        var vy = fx;
-        double u0 = Double.MAX_VALUE, u1 = -Double.MAX_VALUE, v0 = Double.MAX_VALUE, v1 = -Double.MAX_VALUE;
-        for (var ring : sitz.umriss().ringe())
-            for (var p : ring) {
-                var u = p.x() * fx + p.y() * fy;
-                var v = p.x() * vx + p.y() * vy;
-                u0 = Math.min(u0, u);
-                u1 = Math.max(u1, u);
-                v0 = Math.min(v0, v);
-                v1 = Math.max(v1, v);
-            }
-        var laenge = (u1 - u0) * .62;
-        var lehne = List.of(
-                punkt(fx, fy, vx, vy, u0, v0), punkt(fx, fy, vx, vy, u0 + laenge, v0), punkt(fx, fy, vx, vy, u0 + laenge, v0 + ARMLEHNE_BREITE),
-                punkt(fx, fy, vx, vy, u0 + LEHNE_TIEFE, v0 + ARMLEHNE_BREITE), punkt(fx, fy, vx, vy, u0 + LEHNE_TIEFE, v1 - ARMLEHNE_BREITE),
-                punkt(fx, fy, vx, vy, u0 + laenge, v1 - ARMLEHNE_BREITE), punkt(fx, fy, vx, vy, u0 + laenge, v1), punkt(fx, fy, vx, vy, u0, v1));
-        schichten.get("platz").add(new Form((bezug != null ? bezug.platzId() : sitz.id()) + "/lehne", sitz.ebene(), ring(lehne),
-                stile("platz", "platz-lehne", "bereich-" + name(sitz.zone())), null, null, Map.of()));
     }
 
     /*  Rollstuhl- und Fahrradflächen sind Plätze, wenn sie reservierbar sind; Gepäck, Kinderwagen und Klappsitze nur Piktogramme  */
@@ -290,11 +264,6 @@ public final class Sitzplanzeichner {
             case GARDEROBE -> Piktogrammart.GARDEROBE;
             default -> null;
         });
-    }
-
-    /*  Koordinaten in den Sitzachsen (f: Richtung der Rückenlehne, v: quer dazu) zurück in Wagenkoordinaten  */
-    private static Punkt punkt(double fx, double fy, double vx, double vy, double u, double v) {
-        return new Punkt(u * fx + v * vx, u * fy + v * vy);
     }
 
     /*  Die erste Klasse ist die Schicht (schicht-xxx), die übrigen sind Stilklassen  */

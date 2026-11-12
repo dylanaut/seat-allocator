@@ -39,7 +39,7 @@ class WagenAusLayoutTest {
     void testAnsichtDesWagensAusSeinemLayout() {
         given().get("/api/v1/wagen/Beispiel-Mittel/ansicht").then().statusCode(200)
                 .body("breiteM", greaterThan(20f))
-                .body("formen.findAll { it.stile.contains('platz') && !it.stile.contains('platz-lehne') }.size()", is(50))
+                .body("formen.findAll { it.stile.contains('platz') }.size()", is(50))
                 .body("formen.find { it.id == 'Beispiel-Mittel-1' }.details.Platz", is("1"))
                 .body("formen.find { it.id == 'Beispiel-Mittel-FR1' }.piktogramm.art", is("FAHRRAD"))
                 .body("formen.stile.flatten()", not(hasItems("schicht-tuer", "schicht-flaeche")));

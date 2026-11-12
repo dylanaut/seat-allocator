@@ -50,7 +50,7 @@ class SitzplanzeichnerTest {
         assertTrue(plaetze.stream().anyMatch((f) -> f.id().equals("W-1") && f.details().get("Platz").equals("1") && f.stile().contains("platz-sitz")));
         var rollstuhl = plaetze.stream().filter((f) -> f.id().equals("W-RS1")).findFirst().orElseThrow();
         assertEquals(Piktogrammart.ROLLSTUHL, rollstuhl.piktogramm().art());
-        assertTrue(ansicht.formen().stream().filter((f) -> f.stile().contains("platz-lehne")).count() >= 26);
+        assertTrue(ansicht.formen().stream().noneMatch((f) -> f.id().endsWith("/lehne")), "keine angedeuteten Lehnen");
     }
 
     @Test
