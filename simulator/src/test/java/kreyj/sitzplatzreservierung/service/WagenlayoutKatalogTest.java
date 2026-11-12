@@ -73,4 +73,31 @@ class WagenlayoutKatalogTest {
             assertEquals(27, katalog.layout("A-Wagen").sitzplaetze().size());
         }
     }
+
+    @Test
+    void testEigeneLayoutsAusExternemVerzeichnis(@TempDir Path verzeichnis) throws IOException {
+        try (InputStream quelle = getClass().getResourceAsStream("/rismaps/layouts/by-layout/Beispiel-Klein.json")) {
+            var inhalt = quelle.readAllBytes();
+            java.nio.file.Files.write(verzeichnis.resolve("Mein-Wagen.json"), inhalt);
+            java.nio.file.Files.write(verzeichnis.resolve("Beispiel-Klein.json"), "kaputt".getBytes());
+            java.nio.file.Files.write(verzeichnis.resolve("Notiz.txt"), inhalt);
+            java.nio.file.Files.write(verzeichnis.resolve(".versteckt.json"), inhalt);
+        }
+        var katalog = new WagenlayoutKatalog();
+        katalog.externesVerzeichnis = java.util.Optional.of(verzeichnis.toString());
+
+        assertEquals(4, katalog.kennungen().size());
+        assertTrue(katalog.kennungen().contains("Mein-Wagen"));
+        assertEquals(27, katalog.layout("Mein-Wagen").sitzplaetze().size());
+        assertThrows(java.io.UncheckedIOException.class, () -> katalog.layout("Beispiel-Klein"), "externe Datei überschreibt das Beispiel");
+        assertThrows(WagenlayoutNichtGefundenException.class, () -> katalog.layout(".versteckt"));
+    }
+
+    @Test
+    void testFehlendesExternesVerzeichnisWirdIgnoriert() {
+        var katalog = new WagenlayoutKatalog();
+        katalog.externesVerzeichnis = java.util.Optional.of("gibt/es/nicht");
+
+        assertEquals(3, katalog.kennungen().size());
+    }
 }
