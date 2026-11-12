@@ -14,6 +14,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -26,7 +27,7 @@ class WagenlayoutKatalogTest {
         assertEquals(4, katalog.kennungen().size());
         assertTrue(katalog.kennungen().contains("Beispiel-Klein"));
         assertEquals(27, katalog.layout("Beispiel-Klein").sitzplaetze().size());
-        assertTrue(katalog.layout("Beispiel-Klein") == katalog.layout("Beispiel-Klein"), "wird nur einmal geladen");
+        assertSame(katalog.layout("Beispiel-Klein"), katalog.layout("Beispiel-Klein"), "wird nur einmal geladen");
     }
 
     @Test
@@ -54,6 +55,7 @@ class WagenlayoutKatalogTest {
         var jar = verzeichnis.resolve("layouts.jar");
         try (var ausgabe = new JarOutputStream(java.nio.file.Files.newOutputStream(jar));
              InputStream quelle = getClass().getResourceAsStream("/rismaps/layouts/by-layout/Beispiel-Klein.json")) {
+            assert quelle != null;
             var inhalt = quelle.readAllBytes();
             ausgabe.putNextEntry(new JarEntry(WagenlayoutKatalog.VERZEICHNIS + "/index.txt"));
             ausgabe.write("A-Wagen\nB-Wagen\n".getBytes());
@@ -77,14 +79,14 @@ class WagenlayoutKatalogTest {
     @Test
     void testEigeneLayoutsAusExternemVerzeichnis(@TempDir Path verzeichnis) throws IOException {
         try (InputStream quelle = getClass().getResourceAsStream("/rismaps/layouts/by-layout/Beispiel-Klein.json")) {
+            assert quelle != null;
             var inhalt = quelle.readAllBytes();
             java.nio.file.Files.write(verzeichnis.resolve("Mein-Wagen.json"), inhalt);
             java.nio.file.Files.write(verzeichnis.resolve("Beispiel-Klein.json"), "kaputt".getBytes());
             java.nio.file.Files.write(verzeichnis.resolve("Notiz.txt"), inhalt);
             java.nio.file.Files.write(verzeichnis.resolve(".versteckt.json"), inhalt);
         }
-        var katalog = new WagenlayoutKatalog();
-        katalog.externesVerzeichnis = java.util.Optional.of(verzeichnis.toString());
+        var katalog = new WagenlayoutKatalog(java.util.Optional.of(verzeichnis.toString()));
 
         assertEquals(5, katalog.kennungen().size());
         assertTrue(katalog.kennungen().contains("Mein-Wagen"));
@@ -95,8 +97,7 @@ class WagenlayoutKatalogTest {
 
     @Test
     void testFehlendesExternesVerzeichnisWirdIgnoriert() {
-        var katalog = new WagenlayoutKatalog();
-        katalog.externesVerzeichnis = java.util.Optional.of("gibt/es/nicht");
+        var katalog = new WagenlayoutKatalog(java.util.Optional.of("gibt/es/nicht"));
 
         assertEquals(4, katalog.kennungen().size());
     }
