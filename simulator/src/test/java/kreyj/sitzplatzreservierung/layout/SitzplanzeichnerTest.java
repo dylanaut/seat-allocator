@@ -51,6 +51,12 @@ class SitzplanzeichnerTest {
         var rollstuhl = plaetze.stream().filter((f) -> f.id().equals("W-RS1")).findFirst().orElseThrow();
         assertEquals(Piktogrammart.ROLLSTUHL, rollstuhl.piktogramm().art());
         assertTrue(ansicht.formen().stream().noneMatch((f) -> f.id().endsWith("/lehne")), "keine angedeuteten Lehnen");
+
+        /*  Sitze: gerade Kante an der Rückenlehne, Sitzkante gegenüber als konkave Kurve (quadratische Bézierkurve)  */
+        var sitz = plaetze.stream().filter((f) -> f.id().equals("W-1")).findFirst().orElseThrow();
+        assertEquals(1, anzahl(sitz.pfad(), 'Q'));
+        assertEquals(2, anzahl(sitz.pfad(), 'L'));
+        assertTrue(sitz.pfad().endsWith("Z"));
     }
 
     @Test
