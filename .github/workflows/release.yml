@@ -129,7 +129,7 @@ jobs:
           PID=$!
           OK=0
           for i in $(seq 1 60); do
-            if curl -sf http://localhost:18080/api/v1/wagen | grep -q '"W1"'; then OK=1; break; fi
+            if curl -sf http://localhost:18080/api/v1/wagen | grep -q '"Beispiel-Mittel"'; then OK=1; break; fi
             sleep 2
           done
           kill "${PID}" 2>/dev/null || true
@@ -151,7 +151,7 @@ jobs:
             if ($p.HasExited) { break }
             try {
               $r = Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:18080/api/v1/wagen" -TimeoutSec 5
-              if ($r.Content -like '*"W1"*') { $ok = $true; break }
+              if ($r.Content -like '*"Beispiel-Mittel"*') { $ok = $true; break }
             } catch { }
             Start-Sleep -Seconds 2
           }

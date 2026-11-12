@@ -18,7 +18,7 @@ public class Gruppenkontingent extends PanacheEntityBase {
     @Column(name = "kontingent_id", nullable = false)
     public String id;
 
-    @Column(name = "wagen_id", nullable = false, length = 20)
+    @Column(name = "wagen_id", nullable = false, length = 80)
     public String wagenId;
 
     @ManyToOne(fetch = FetchType.LAZY)

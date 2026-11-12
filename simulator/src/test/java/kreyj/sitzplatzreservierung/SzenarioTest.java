@@ -26,7 +26,7 @@ class SzenarioTest {
     }
 
     private static String szenario(String name, String schritte) {
-        return "{ \"name\": \"" + name + "\", \"beschreibung\": \"Test\", \"wagenId\": \"W1\", \"schritte\": [" + schritte + "] }";
+        return "{ \"name\": \"" + name + "\", \"beschreibung\": \"Test\", \"wagenId\": \"Beispiel-Mittel\", \"schritte\": [" + schritte + "] }";
     }
 
     private static final String ANFRAGE = "{ \"typ\": \"ANFRAGE\", \"bezeichnung\": \"Familie\", \"anfrage\": { \"gruppengroesse\": 3, \"mitKindern\": true } }";

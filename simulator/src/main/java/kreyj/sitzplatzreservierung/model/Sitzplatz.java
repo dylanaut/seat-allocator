@@ -9,10 +9,10 @@ import jakarta.persistence.*;
 public class Sitzplatz extends PanacheEntityBase {
 
     @Id
-    @Column(name = "sitz_id", length = 10)
+    @Column(name = "sitz_id", length = 100)
     public String id;
 
-    @Column(name = "wagen_id", nullable = false, length = 20)
+    @Column(name = "wagen_id", nullable = false, length = 80)
     public String wagenId;
 
     @Enumerated(EnumType.STRING)
@@ -29,8 +29,34 @@ public class Sitzplatz extends PanacheEntityBase {
     @Column(name = "zone", nullable = false)
     public Zone zone = Zone.STANDARD;
 
+    /**
+     * Seite des Mittelgangs (0 oder 1); ohne Angabe gelten die Spalten 0 und 1 als eine, 2 und 3 als die andere Seite.
+     */
+    @Column(name = "gangseite")
+    public Integer gangseite;
+
+    /**
+     * Anzeigename des Platzes, z. B. die Platznummer; ohne Angabe gilt die Id.
+     */
+    @Column(name = "bezeichnung", length = 40)
+    public String bezeichnung;
+
+    /**
+     * Id des Elements im Wagenlayout, das diesen Platz zeichnet; null bei Plätzen ohne Layout.
+     */
+    @Column(name = "element_id", length = 100)
+    public String elementId;
+
     @Column(name = "kontingent_id")
     public String kontingentId;
+
+    public int seite() {
+        return gangseite != null ? gangseite : spalte / 2;
+    }
+
+    public String anzeigename() {
+        return bezeichnung != null ? bezeichnung : id;
+    }
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "kontingent_id", insertable = false, updatable = false)

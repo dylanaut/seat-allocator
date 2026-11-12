@@ -53,7 +53,7 @@ lässt sich ein Probelauf ohne Release starten; die Dateien liegen dann als Work
 ## Demo (ohne Datenbank und Docker)
 
 Jedes Release enthält `seat-allocator-demo-<version>.zip`: ein plattformunabhängiges Uber-Jar mit eingebetteter
-H2-Datenbank und den Testdaten aus `import.sql` sowie Startskripten. Es genügt ein Java 21 (JRE):
+H2-Datenbank, je einem Demo-Wagen pro Wagenlayout sowie Startskripten. Es genügt ein Java 21 (JRE):
 
 ```shell
 unzip seat-allocator-demo-1.0.0.zip && cd seat-allocator-demo-1.0.0
@@ -77,5 +77,5 @@ java -Dquarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/seats \
 ```
 
 Ohne Dev Services braucht die Anwendung eine PostgreSQL-Datenbank. Beim Start wird das Schema neu erzeugt und mit
-Demodaten (`import.sql`) gefüllt (`quarkus.hibernate-orm.schema-management.strategy=drop-and-create`). Szenarien liegen als
+je einem Demo-Wagen pro Wagenlayout gefüllt (`quarkus.hibernate-orm.schema-management.strategy=drop-and-create`). Szenarien liegen als
 JSON-Dateien im Verzeichnis `szenarien` (im Quellbaum `simulator/szenarien`) relativ zum Arbeitsverzeichnis (`zuteilung.szenarien.verzeichnis`).

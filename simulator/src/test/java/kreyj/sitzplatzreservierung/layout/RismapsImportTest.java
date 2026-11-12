@@ -80,7 +80,7 @@ class RismapsImportTest {
         var verzeichnis = Path.of(RismapsImportTest.class.getResource(VERZEICHNIS).toURI());
         try (Stream<Path> dateien = Files.list(verzeichnis)) {
             var json = dateien.filter((d) -> d.getFileName().toString().endsWith(".json")).toList();
-            assertEquals(3, json.size());
+            assertEquals(4, json.size());
             for (var datei : json) {
                 var layout = lade(datei.getFileName().toString());
                 assertFalse(layout.sitzplaetze().isEmpty(), datei.toString());

@@ -23,7 +23,7 @@ class WagenlayoutKatalogTest {
     void testLayoutsAusDemKlassenpfad() {
         var katalog = new WagenlayoutKatalog();
 
-        assertEquals(3, katalog.kennungen().size());
+        assertEquals(4, katalog.kennungen().size());
         assertTrue(katalog.kennungen().contains("Beispiel-Klein"));
         assertEquals(27, katalog.layout("Beispiel-Klein").sitzplaetze().size());
         assertTrue(katalog.layout("Beispiel-Klein") == katalog.layout("Beispiel-Klein"), "wird nur einmal geladen");
@@ -86,7 +86,7 @@ class WagenlayoutKatalogTest {
         var katalog = new WagenlayoutKatalog();
         katalog.externesVerzeichnis = java.util.Optional.of(verzeichnis.toString());
 
-        assertEquals(4, katalog.kennungen().size());
+        assertEquals(5, katalog.kennungen().size());
         assertTrue(katalog.kennungen().contains("Mein-Wagen"));
         assertEquals(27, katalog.layout("Mein-Wagen").sitzplaetze().size());
         assertThrows(java.io.UncheckedIOException.class, () -> katalog.layout("Beispiel-Klein"), "externe Datei überschreibt das Beispiel");
@@ -98,6 +98,6 @@ class WagenlayoutKatalogTest {
         var katalog = new WagenlayoutKatalog();
         katalog.externesVerzeichnis = java.util.Optional.of("gibt/es/nicht");
 
-        assertEquals(3, katalog.kennungen().size());
+        assertEquals(4, katalog.kennungen().size());
     }
 }

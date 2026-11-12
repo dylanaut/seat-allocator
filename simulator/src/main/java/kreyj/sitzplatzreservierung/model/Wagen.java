@@ -14,11 +14,17 @@ import java.util.List;
 public class Wagen extends PanacheEntityBase {
 
     @Id
-    @Column(name = "wagen_id", length = 20)
+    @Column(name = "wagen_id", length = 80)
     public String id;
 
     @Column(name = "zugnummer", nullable = false)
     public String zugnummer;
+
+    /**
+     * Kennung des Wagenlayouts, aus dem die Sitzplätze des Wagens stammen; null bei Wagen ohne Layout.
+     */
+    @Column(name = "layout", length = 80)
+    public String layout;
 
     /**
      * Halte der Strecke in Fahrtrichtung, kommasepariert. Ohne Angabe gilt eine Strecke Start-Ziel.

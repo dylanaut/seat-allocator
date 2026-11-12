@@ -1,8 +1,8 @@
 {
   "id": "ausgebucht",
   "name": "Ausgebucht (Einzelbuchungen)",
-  "wagenId": "W1",
-  "beschreibung": "Nur Einzelbuchungen von Hamburg bis München füllen Wagen W1 Platz für Platz. Die Reihe 4 ist für Gruppen kontingentiert und die letzten drei Plätze bleiben deshalb frei, bis die Freigabefrist (2030-01-01) verstrichen ist; ab Einzelreisender 32 werden die Anfragen danach gestellt. Die letzte Anfrage wird abgelehnt, weil der Wagen ausgebucht ist.",
+  "wagenId": "Beispiel-Mittel",
+  "beschreibung": "Rollstuhlplatz, Fahrradplatz und danach nur Einzelbuchungen von Hamburg bis München füllen den Wagen Beispiel-Mittel Platz für Platz. Die vier Sitze der Tischgruppe sind für Gruppen kontingentiert und drei weitere bleiben durch den Topologieschutz frei, bis die Freigabefrist (2030-01-01) verstrichen ist; ab Einzelreisender 41 werden die Anfragen danach gestellt. Die letzte Anfrage wird abgelehnt, weil der Wagen ausgebucht ist.",
   "schritte": [
     {
       "typ": "ANFRAGE",
@@ -16,27 +16,7 @@
     },
     {
       "typ": "ANFRAGE",
-      "bezeichnung": "Rollstuhlfahrer 2",
-      "anfrage": {
-        "gruppengroesse": 1,
-        "einstiegHalt": 0,
-        "ausstiegHalt": 3,
-        "wuenschtRollstuhlplatz": true
-      }
-    },
-    {
-      "typ": "ANFRAGE",
-      "bezeichnung": "Einzelreisender mit Fahrrad 1",
-      "anfrage": {
-        "gruppengroesse": 1,
-        "einstiegHalt": 0,
-        "ausstiegHalt": 3,
-        "wuenschtFahrradplatz": true
-      }
-    },
-    {
-      "typ": "ANFRAGE",
-      "bezeichnung": "Einzelreisender mit Fahrrad 2",
+      "bezeichnung": "Einzelreisender mit Fahrrad",
       "anfrage": {
         "gruppengroesse": 1,
         "einstiegHalt": 0,
@@ -329,8 +309,7 @@
       "anfrage": {
         "gruppengroesse": 1,
         "einstiegHalt": 0,
-        "ausstiegHalt": 3,
-        "anfragezeitpunkt": "2030-01-02T08:00:00Z"
+        "ausstiegHalt": 3
       }
     },
     {
@@ -339,8 +318,7 @@
       "anfrage": {
         "gruppengroesse": 1,
         "einstiegHalt": 0,
-        "ausstiegHalt": 3,
-        "anfragezeitpunkt": "2030-01-02T08:00:00Z"
+        "ausstiegHalt": 3
       }
     },
     {
@@ -349,8 +327,7 @@
       "anfrage": {
         "gruppengroesse": 1,
         "einstiegHalt": 0,
-        "ausstiegHalt": 3,
-        "anfragezeitpunkt": "2030-01-02T08:00:00Z"
+        "ausstiegHalt": 3
       }
     },
     {
@@ -359,8 +336,7 @@
       "anfrage": {
         "gruppengroesse": 1,
         "einstiegHalt": 0,
-        "ausstiegHalt": 3,
-        "anfragezeitpunkt": "2030-01-02T08:00:00Z"
+        "ausstiegHalt": 3
       }
     },
     {
@@ -369,13 +345,48 @@
       "anfrage": {
         "gruppengroesse": 1,
         "einstiegHalt": 0,
-        "ausstiegHalt": 3,
-        "anfragezeitpunkt": "2030-01-02T08:00:00Z"
+        "ausstiegHalt": 3
       }
     },
     {
       "typ": "ANFRAGE",
       "bezeichnung": "Einzelreisender 37",
+      "anfrage": {
+        "gruppengroesse": 1,
+        "einstiegHalt": 0,
+        "ausstiegHalt": 3
+      }
+    },
+    {
+      "typ": "ANFRAGE",
+      "bezeichnung": "Einzelreisender 38",
+      "anfrage": {
+        "gruppengroesse": 1,
+        "einstiegHalt": 0,
+        "ausstiegHalt": 3
+      }
+    },
+    {
+      "typ": "ANFRAGE",
+      "bezeichnung": "Einzelreisender 39",
+      "anfrage": {
+        "gruppengroesse": 1,
+        "einstiegHalt": 0,
+        "ausstiegHalt": 3
+      }
+    },
+    {
+      "typ": "ANFRAGE",
+      "bezeichnung": "Einzelreisender 40",
+      "anfrage": {
+        "gruppengroesse": 1,
+        "einstiegHalt": 0,
+        "ausstiegHalt": 3
+      }
+    },
+    {
+      "typ": "ANFRAGE",
+      "bezeichnung": "Einzelreisender 41",
       "anfrage": {
         "gruppengroesse": 1,
         "einstiegHalt": 0,
@@ -385,7 +396,57 @@
     },
     {
       "typ": "ANFRAGE",
-      "bezeichnung": "Einzelreisender 38",
+      "bezeichnung": "Einzelreisender 42",
+      "anfrage": {
+        "gruppengroesse": 1,
+        "einstiegHalt": 0,
+        "ausstiegHalt": 3,
+        "anfragezeitpunkt": "2030-01-02T08:00:00Z"
+      }
+    },
+    {
+      "typ": "ANFRAGE",
+      "bezeichnung": "Einzelreisender 43",
+      "anfrage": {
+        "gruppengroesse": 1,
+        "einstiegHalt": 0,
+        "ausstiegHalt": 3,
+        "anfragezeitpunkt": "2030-01-02T08:00:00Z"
+      }
+    },
+    {
+      "typ": "ANFRAGE",
+      "bezeichnung": "Einzelreisender 44",
+      "anfrage": {
+        "gruppengroesse": 1,
+        "einstiegHalt": 0,
+        "ausstiegHalt": 3,
+        "anfragezeitpunkt": "2030-01-02T08:00:00Z"
+      }
+    },
+    {
+      "typ": "ANFRAGE",
+      "bezeichnung": "Einzelreisender 45",
+      "anfrage": {
+        "gruppengroesse": 1,
+        "einstiegHalt": 0,
+        "ausstiegHalt": 3,
+        "anfragezeitpunkt": "2030-01-02T08:00:00Z"
+      }
+    },
+    {
+      "typ": "ANFRAGE",
+      "bezeichnung": "Einzelreisender 46",
+      "anfrage": {
+        "gruppengroesse": 1,
+        "einstiegHalt": 0,
+        "ausstiegHalt": 3,
+        "anfragezeitpunkt": "2030-01-02T08:00:00Z"
+      }
+    },
+    {
+      "typ": "ANFRAGE",
+      "bezeichnung": "Einzelreisender 47",
       "anfrage": {
         "gruppengroesse": 1,
         "einstiegHalt": 0,

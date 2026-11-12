@@ -4,9 +4,12 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 
@@ -26,16 +29,16 @@ class SitzplatzResourceTest {
             .contentType(ContentType.JSON)
             .body(payload)
             .when()
-            .post("/api/v1/wagen/W1/sitzplaetze/zuteilen")
+            .post("/api/v1/wagen/Beispiel-Mittel/sitzplaetze/zuteilen")
             .then()
             .statusCode(200)
-            .body("id", startsWith("1"))
+            .body("id", startsWith("Beispiel-Mittel-"))
             .body("zone", is("RUHE"));
     }
 
     @Test
     void testSingleSeatNeverFromBlockedTableRowBeforeDeadline() {
-        // Einzelplatz vor der Deadline von 18:00 Uhr: Reihe 4 ist für Gruppen n >= 3 reserviert
+        // Einzelplatz vor der Freigabefrist: die Plätze der Tischgruppe sind für Gruppen n >= 3 reserviert
         String payload = """
             {
                 "wuenschtRuhezone": false,
@@ -47,10 +50,10 @@ class SitzplatzResourceTest {
             .contentType(ContentType.JSON)
             .body(payload)
             .when()
-            .post("/api/v1/wagen/W1/sitzplaetze/zuteilen")
+            .post("/api/v1/wagen/Beispiel-Mittel/sitzplaetze/zuteilen")
             .then()
             .statusCode(200)
-            .body("id", not(startsWith("4")));
+            .body("id", not(in(List.of("Beispiel-Mittel-10", "Beispiel-Mittel-11", "Beispiel-Mittel-13", "Beispiel-Mittel-14"))));
     }
 
     @Test
@@ -67,7 +70,7 @@ class SitzplatzResourceTest {
             .contentType(ContentType.JSON)
             .body(payload)
             .when()
-            .post("/api/v1/wagen/W1/sitzplaetze/gruppe-zuteilen")
+            .post("/api/v1/wagen/Beispiel-Mittel/sitzplaetze/gruppe-zuteilen")
             .then()
             .statusCode(200)
             .body("", hasSize(3));
