@@ -4,7 +4,7 @@
   --avail: #d9f2df; --avail-stroke: #2e8b57; --taken: #c9ced4; --taken-stroke: #d32f2f;
   --ruhe: rgba(74,163,255,.16); --kinder: rgba(255,170,60,.2); --held: #dbe7ff; --held-stroke: #e0b000; --group: #ffe7b3; --group-stroke: #c98a00; --other: #eceff2; --other-stroke: #b4bcc4;
   --prop: #1f6feb; --prop-stroke: #0b3f94; --wagen: #eef2f6; --danger: #b3261e; --ok: #1a7f46;
-  --seat: #a9c7e2; --seat-back: #5f8fb8; --seat-line: #3f6d94; --table: #f0c36b; --table-line: #8a6213;
+  --seat: #a9c7e2; --seat-line: #3f6d94; --table: #f0c36b; --table-line: #8a6213;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -12,7 +12,7 @@
     --avail: #1e4a30; --avail-stroke: #4cc380; --taken: #3a424b; --taken-stroke: #ff6b63;
     --ruhe: rgba(74,163,255,.22); --kinder: rgba(255,170,60,.22); --held: #25365c; --held-stroke: #f5c542; --group: #5a4510; --group-stroke: #e0a92a; --other: #252d35; --other-stroke: #46515c;
     --wagen: #202830; --danger: #ff8b84; --ok: #55d08a;
-    --seat: #3d6a90; --seat-back: #5b8fbd; --seat-line: #9cc6e8; --table: #8a6a25; --table-line: #f0c36b;
+    --seat: #3d6a90; --seat-line: #9cc6e8; --table: #8a6a25; --table-line: #f0c36b;
   }
 }
 * { box-sizing: border-box; }
@@ -69,22 +69,15 @@ main > section, .stack > section { min-width: 0; }
 
 /* Plätze: Zustand über zustand-*, Auswahl über gewaehlt und neu */
 .platz > path { fill: var(--seat); stroke: var(--seat-line); stroke-width: .03; transition: stroke-width .1s, fill-opacity .1s; }
-.platz-lehne > path { fill: var(--seat-back); stroke: var(--seat-line); stroke-width: .025; pointer-events: none; }
 .platz-gesperrt > path { fill: var(--other); stroke: var(--other-stroke); }
 .platz-rollstuhl > path, .platz-fahrrad > path { stroke-dasharray: .1 .07; }
 .platz:focus { outline: none; }
 .zustand-frei.platz > path { fill: var(--avail); stroke: var(--avail-stroke); cursor: pointer; }
-.zustand-frei.platz-lehne > path { fill: var(--avail-stroke); }
 .zustand-belegt.platz > path { fill: var(--taken); stroke: var(--taken-stroke); stroke-width: .06; }
-.zustand-belegt.platz-lehne > path { fill: var(--taken-stroke); fill-opacity: .6; }
 .zustand-vorgemerkt.platz > path { fill: var(--held); stroke: var(--held-stroke); stroke-width: .06; stroke-dasharray: .08 .08; }
-.zustand-vorgemerkt.platz-lehne > path { fill: var(--held-stroke); fill-opacity: .6; }
 .zustand-gruppenkontingent.platz > path { fill: var(--group); stroke: var(--group-stroke); stroke-dasharray: .12 .08; }
-.zustand-gruppenkontingent.platz-lehne > path { fill: var(--group-stroke); fill-opacity: .6; }
 .zustand-andere-zone.platz > path, .zustand-sonderplatz.platz > path { fill: var(--other); stroke: var(--other-stroke); }
-.zustand-andere-zone.platz-lehne > path, .zustand-sonderplatz.platz-lehne > path { fill: var(--other-stroke); fill-opacity: .6; }
 .gewaehlt.platz > path { fill: var(--prop); stroke: var(--prop-stroke); stroke-width: .08; }
-.gewaehlt.platz-lehne > path { fill: var(--prop-stroke); }
 .neu.platz > path { stroke: #ff7b00; stroke-width: .1; }
 .platz:hover > path { stroke: var(--accent); stroke-width: .1; }
 .zustand-frei.platz:hover > path { fill-opacity: .75; }

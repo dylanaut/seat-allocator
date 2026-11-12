@@ -47,11 +47,7 @@ const Wagenplan = (() => {
         const b = f.beschriftung;
         neu("text", { x: b.position.x, y: b.position.y, "font-size": b.groesse, "text-anchor": "middle" }, g).textContent = b.text;
       }
-      if (f.stile.includes("platz")) svg._plaetze.set(f.id, { g, lehne: null });
-      else if (f.stile.includes("platz-lehne")) {
-        const eintrag = svg._plaetze.get(f.id.replace(/\/lehne$/, ""));
-        if (eintrag) eintrag.lehne = g;
-      }
+      if (f.stile.includes("platz")) svg._plaetze.set(f.id, { g });
     }
 
     const ebenen = ansicht.ebenen;
@@ -86,14 +82,11 @@ const Wagenplan = (() => {
       const zustand = "zustand-" + s.zustand.toLowerCase().replace(/_/g, "-");
       const name = s.art === "ROLLSTUHL" ? "Rollstuhlplatz" : s.art === "FAHRRAD" ? "Fahrradstellplatz" : "Sitz " + s.bezeichnung;
       const text = `${name}, ${gewaehlt.has(s.id) ? "gewählt" : neuGebucht.has(s.id) ? "neu reserviert" : bezeichnung[s.zustand]}`;
-      for (const g of [eintrag.g, eintrag.lehne]) {
-        if (!g) continue;
-        g.classList.remove(...zustaende);
-        g.classList.add(zustand);
-        g.classList.toggle("gewaehlt", gewaehlt.has(s.id));
-        g.classList.toggle("neu", neuGebucht.has(s.id));
-      }
       const g = eintrag.g;
+      g.classList.remove(...zustaende);
+      g.classList.add(zustand);
+      g.classList.toggle("gewaehlt", gewaehlt.has(s.id));
+      g.classList.toggle("neu", neuGebucht.has(s.id));
       g.setAttribute("role", "button");
       g.setAttribute("tabindex", s.zustand === "FREI" ? "0" : "-1");
       g.setAttribute("aria-label", text);
