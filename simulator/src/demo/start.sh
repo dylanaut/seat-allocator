@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # Startet die Seat-Allocator-Demo (macOS, Linux). Voraussetzung: Java 21 oder neuer.
-# Optionen als Umgebungsvariablen: PORT (Standard 8080), NO_BROWSER=1 (Browser nicht öffnen), JAVA_HOME.
+# Optionen als Umgebungsvariablen: PORT (Standard 8080), NO_BROWSER=1 (Browser nicht öffnen), JAVA_HOME, JAVA_OPTS (JVM-Optionen).
 cd "$(dirname "$0")" || exit 1
 
 JAR="seat-allocator-demo.jar"
@@ -33,4 +33,10 @@ if [ -z "$NO_BROWSER" ]; then
   fi
 fi
 
-exec "$JAVA" -Dquarkus.http.port="$PORT" -jar "$JAR" "$@"
+LAYOUTS=""
+if [ -z "$WAGENLAYOUTS_VERZEICHNIS" ] && [ -d layouts ]; then
+  LAYOUTS="-Dwagenlayouts.verzeichnis=$PWD/layouts"
+fi
+
+# shellcheck disable=SC2086
+exec "$JAVA" -Dquarkus.http.port="$PORT" $LAYOUTS $JAVA_OPTS -jar "$JAR" "$@"

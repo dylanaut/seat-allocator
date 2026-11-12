@@ -18,9 +18,14 @@ Optionen (Umgebungsvariablen)
   PORT=9090       anderer Port
   NO_BROWSER=1    Browser nicht automatisch öffnen
   JAVA_HOME       zu verwendende Java-Installation
+  JAVA_OPTS       weitere JVM-Optionen und Quarkus-Einstellungen, zum Beispiel
+                  JAVA_OPTS=-Dquarkus.http.host=0.0.0.0 ./start.sh   (Zugriff aus dem Netz; die Demo hat keine Anmeldung)
+  WAGENLAYOUTS_VERZEICHNIS   Ordner mit eigenen Wagenlayouts (siehe unten)
 
-Weitere Quarkus-Einstellungen lassen sich als Argumente anhängen, zum Beispiel
-  ./start.sh -Dquarkus.http.host=0.0.0.0     (Zugriff aus dem Netz; die Demo hat keine Anmeldung)
+Eigene Wagenlayouts
+  Legen Sie einen Ordner "layouts" neben start.sh an und kopieren Sie Layout-Dateien (<Kennung>.json) hinein.
+  Beim nächsten Start erscheinen sie zusätzlich zu den Beispielen unter http://localhost:8080/wagenlayout.html.
+  Ein anderer Ordner lässt sich mit WAGENLAYOUTS_VERZEICHNIS angeben.
 
 Der Ordner "szenarien" enthält gespeicherte Szenarien (JSON-Dateien); er wird relativ zu diesem Verzeichnis gelesen.
 
