@@ -1,6 +1,7 @@
 package kreyj.sitzplatzreservierung.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import kreyj.sitzplatzreservierung.exception.WagenlayoutNichtGefundenException;
 import kreyj.sitzplatzreservierung.layout.RismapsImport;
 import kreyj.sitzplatzreservierung.layout.Wagenlayout;
@@ -36,11 +37,20 @@ public class WagenlayoutKatalog {
     private final Map<String, Wagenlayout> geladen = new ConcurrentHashMap<>();
     private volatile List<String> kennungen;
 
-    @ConfigProperty(name = "wagenlayouts.verzeichnis")
-    Optional<String> externesVerzeichnis = Optional.empty();
+    private final Optional<String> externesVerzeichnis;
 
     /*  Nur für Tests: anderer Klassenlader statt des Kontext-Klassenladers  */
     ClassLoader klassenlader;
+
+    /*  Für den CDI-Proxy und für Tests ohne externes Verzeichnis  */
+    WagenlayoutKatalog() {
+        this(Optional.empty());
+    }
+
+    @Inject
+    WagenlayoutKatalog(@ConfigProperty(name = "wagenlayouts.verzeichnis") Optional<String> externesVerzeichnis) {
+        this.externesVerzeichnis = externesVerzeichnis;
+    }
 
     public List<String> kennungen() {
         if (kennungen == null)
