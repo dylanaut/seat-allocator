@@ -32,6 +32,14 @@ public record Umriss(List<List<Punkt>> ringe) {
         return Math.hypot(Math.max(Math.max(g[0] - punkt.x(), punkt.x() - g[2]), 0), Math.max(Math.max(g[1] - punkt.y(), punkt.y() - g[3]), 0));
     }
 
+    public double minX() {
+        return grenzen()[0];
+    }
+
+    public double maxX() {
+        return grenzen()[2];
+    }
+
     /*  Umschließendes Rechteck als { xMin, yMin, xMax, yMax }  */
     private double[] grenzen() {
         var g = new double[] { Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE, -Double.MAX_VALUE };

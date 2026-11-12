@@ -51,7 +51,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 .leg.on { background: var(--accent); }
 .scroll { overflow-x: auto; }
 main > section, .stack > section { min-width: 0; }
-#sitzplan { display: block; min-width: 1400px; width: 100%; height: auto; }
+#sitzplan { display: block; width: 100%; height: auto; }
 #sitzplan g { stroke-linejoin: round; }
 /* Grundwerte ohne Gewicht, damit die Stilklassen der Formen sie überschreiben */
 :where(#sitzplan) path { fill: none; stroke: none; }
@@ -61,7 +61,9 @@ main > section, .stack > section { min-width: 0; }
 .eb-aus { display: none; }
 
 /* Wagenumriss, Zonen, Tische */
-.kontur > path { fill: var(--wagen); stroke: var(--border); stroke-width: .1; }
+.kontur-flaeche > path { fill: var(--wagen); }
+.kontur-linie > path { stroke: var(--border); stroke-width: .1; stroke-linecap: round; }
+.kontur-bruecke > path { stroke: var(--border); stroke-width: .12; stroke-linecap: round; stroke-dasharray: 0 .18; }
 .zone-ruhe > path { fill: var(--ruhe); } .zone-familie > path, .zone-kleinkind > path { fill: var(--kinder); }
 .tisch > path { fill: var(--table); stroke: var(--table-line); stroke-width: .035; }
 
