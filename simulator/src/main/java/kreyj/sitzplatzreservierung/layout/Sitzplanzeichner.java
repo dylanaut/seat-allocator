@@ -37,6 +37,9 @@ public final class Sitzplanzeichner {
     /*  Länge der gepunkteten Brücke, die den Umriss am Schnitt andeutet (zwei Punkte)  */
     private static final double BRUECKE = .2;
 
+    /*  Tiefe der konkaven Sitzkante als Anteil der Sitztiefe  */
+    private static final double KANTE_TIEFE = .18;
+
     private Sitzplanzeichner() {
     }
 
@@ -221,8 +224,43 @@ public final class Sitzplanzeichner {
             details.put("Merkmale", sitz.merkmale().stream().sorted().map(Enum::name).collect(Collectors.joining(", ")));
 
         var mitte = sitz.umriss().mitte();
-        schichten.get("platz").add(new Form(bezug != null ? bezug.platzId() : sitz.id(), sitz.ebene(), pfad(sitz.umriss()), List.copyOf(stile),
+        schichten.get("platz").add(new Form(bezug != null ? bezug.platzId() : sitz.id(), sitz.ebene(), sitzpfad(sitz), List.copyOf(stile),
                 bezug != null ? new Beschriftung(bezug.bezeichnung(), new Punkt(mitte.x(), mitte.y() + .08), bezug.bezeichnung().length() > 2 ? .21 : .27) : null, null, details));
+    }
+
+    /*  Sitzfläche im Rahmen des Sitzes: gerade Kante an der Rückenlehne, die Sitzkante gegenüber als konkave Kurve  */
+    private static String sitzpfad(Sitzplatz sitz) {
+        /*  f zeigt zur Rückenlehne, v quer dazu; u und v sind die Koordinaten der Sitzpunkte in diesen Achsen  */
+        var winkel = Math.toRadians(sitz.lehnenrichtungGrad());
+        var fx = Math.sin(winkel);
+        var fy = Math.cos(winkel);
+        var vx = -fy;
+        var vy = fx;
+        double u0 = Double.MAX_VALUE, u1 = -Double.MAX_VALUE, v0 = Double.MAX_VALUE, v1 = -Double.MAX_VALUE;
+        for (var ring : sitz.umriss().ringe())
+            for (var p : ring) {
+                var u = p.x() * fx + p.y() * fy;
+                var v = p.x() * vx + p.y() * vy;
+                u0 = Math.min(u0, u);
+                u1 = Math.max(u1, u);
+                v0 = Math.min(v0, v);
+                v1 = Math.max(v1, v);
+            }
+
+        /*  Der Steuerpunkt liegt doppelt so weit innen wie der tiefste Punkt der Kurve  */
+        var kante = punkt(fx, fy, vx, vy, u1, v0);
+        var ende = punkt(fx, fy, vx, vy, u1, v1);
+        var steuer = punkt(fx, fy, vx, vy, u1 - 2 * (u1 - u0) * KANTE_TIEFE, (v0 + v1) / 2);
+        var ruecken0 = punkt(fx, fy, vx, vy, u0, v0);
+        var ruecken1 = punkt(fx, fy, vx, vy, u0, v1);
+        return "M" + zahl(ruecken0.x()) + " " + zahl(ruecken0.y()) + "L" + zahl(kante.x()) + " " + zahl(kante.y())
+                + "Q" + zahl(steuer.x()) + " " + zahl(steuer.y()) + " " + zahl(ende.x()) + " " + zahl(ende.y())
+                + "L" + zahl(ruecken1.x()) + " " + zahl(ruecken1.y()) + "Z";
+    }
+
+    /*  Koordinaten in den Sitzachsen (f: Richtung der Rückenlehne, v: quer dazu) zurück in Wagenkoordinaten  */
+    private static Punkt punkt(double fx, double fy, double vx, double vy, double u, double v) {
+        return new Punkt(u * fx + v * vx, u * fy + v * vy);
     }
 
     /*  Rollstuhl- und Fahrradflächen sind Plätze, wenn sie reservierbar sind; Gepäck, Kinderwagen und Klappsitze nur Piktogramme  */
