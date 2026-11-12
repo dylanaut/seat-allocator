@@ -16,10 +16,10 @@ public class Vormerkung extends PanacheEntity {
     @Column(name = "vormerk_token", nullable = false, length = 36)
     public String vormerkToken;
 
-    @Column(name = "wagen_id", nullable = false, length = 20)
+    @Column(name = "wagen_id", nullable = false, length = 80)
     public String wagenId;
 
-    @Column(name = "sitz_id", nullable = false, length = 10)
+    @Column(name = "sitz_id", nullable = false, length = 100)
     public String sitzId;
 
     @Column(name = "einstieg_halt", nullable = false)

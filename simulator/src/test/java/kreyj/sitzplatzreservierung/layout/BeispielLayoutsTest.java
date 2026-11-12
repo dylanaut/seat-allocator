@@ -1,5 +1,6 @@
 package kreyj.sitzplatzreservierung.layout;
 
+import kreyj.sitzplatzreservierung.layout.Sitzplanzeichner.PlatzBezug;
 import kreyj.sitzplatzreservierung.layout.Wagenelement.Ausstattung;
 import kreyj.sitzplatzreservierung.layout.Wagenelement.Ausstattungsart;
 import kreyj.sitzplatzreservierung.layout.Wagenelement.Bereich;
@@ -12,6 +13,7 @@ import kreyj.sitzplatzreservierung.layout.Wagenelement.Tischart;
 import kreyj.sitzplatzreservierung.layout.Wagenelement.Tuer;
 import kreyj.sitzplatzreservierung.layout.Wagenelement.Tuerart;
 import kreyj.sitzplatzreservierung.layout.Wagenelement.Zonenflaeche;
+import kreyj.sitzplatzreservierung.service.PlatzAbleitung;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -80,10 +82,15 @@ class BeispielLayoutsTest {
     }
 
     @Test
-    void testAllePiktogrammeWerdenGezeichnet() {
-        var gezeichnet = LAYOUTS.stream().flatMap((layout) -> Wagenzeichner.zeichne(layout, null, null, Sitzfaerbung.STANDARD).formen().stream())
-                .map(Form::piktogramm).filter((p) -> p != null).map(Form.Piktogramm::art).collect(Collectors.toSet());
+    void testPiktogrammeDerPlatzwahlWerdenGezeichnet() {
+        var gezeichnet = LAYOUTS.stream().flatMap((layout) -> {
+            var plaetze = PlatzAbleitung.ableiten(layout.kennung(), layout).stream()
+                    .collect(Collectors.toMap(PlatzAbleitung.Platz::elementId, (p) -> new PlatzBezug(p.id(), p.bezeichnung(), p.art().name().toLowerCase())));
+            return Sitzplanzeichner.zeichne(layout, plaetze).formen().stream();
+        }).map(Form::piktogramm).filter((p) -> p != null).map(Form.Piktogramm::art).collect(Collectors.toSet());
 
-        assertEquals(Set.of(), fehlende(Piktogrammart.class, gezeichnet));
+        /*  Piktogramme von Flächen und Ausstattung nur für Personal werden in der Platzwahl nicht gezeichnet  */
+        assertEquals(Set.of(), fehlende(Piktogrammart.class, gezeichnet, Piktogrammart.FAHRERSTAND, Piktogrammart.PERSONAL, Piktogrammart.SCHLIESSFACH,
+                Piktogrammart.GARDEROBE));
     }
 }

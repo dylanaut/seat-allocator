@@ -6,6 +6,7 @@ import kreyj.sitzplatzreservierung.model.Zone;
 
 public record SitzplatzAnsicht(
     String id,
+    String bezeichnung,
     Platzart art,
     int reihe,
     int spalte,
@@ -13,6 +14,6 @@ public record SitzplatzAnsicht(
     Sitzzustand zustand
 ) {
     public static SitzplatzAnsicht von(Sitzplatz sitzplatz, Sitzzustand zustand) {
-        return new SitzplatzAnsicht(sitzplatz.id, sitzplatz.art, sitzplatz.reihe, sitzplatz.spalte, sitzplatz.zone, zustand);
+        return new SitzplatzAnsicht(sitzplatz.id, sitzplatz.anzeigename(), sitzplatz.art, sitzplatz.reihe, sitzplatz.spalte, sitzplatz.zone, zustand);
     }
 }

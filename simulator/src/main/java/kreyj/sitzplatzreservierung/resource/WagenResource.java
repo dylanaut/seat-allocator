@@ -11,13 +11,23 @@ import kreyj.sitzplatzreservierung.dto.KennzahlenResponse;
 import kreyj.sitzplatzreservierung.dto.ReservierungResponse;
 import kreyj.sitzplatzreservierung.dto.SitzplanResponse;
 import kreyj.sitzplatzreservierung.dto.VormerkRequest;
+import kreyj.sitzplatzreservierung.dto.WagenAnlegenRequest;
 import kreyj.sitzplatzreservierung.dto.WagenResponse;
+import kreyj.sitzplatzreservierung.exception.UngueltigeAnfrageException;
 import kreyj.sitzplatzreservierung.exception.WagenNichtGefundenException;
+import kreyj.sitzplatzreservierung.layout.Sitzplanzeichner;
+import kreyj.sitzplatzreservierung.layout.Sitzplanzeichner.PlatzBezug;
+import kreyj.sitzplatzreservierung.layout.Wagenansicht;
+import kreyj.sitzplatzreservierung.model.Sitzplatz;
 import kreyj.sitzplatzreservierung.model.Wagen;
 import kreyj.sitzplatzreservierung.service.SitzzuteilungService;
+import kreyj.sitzplatzreservierung.service.WagenAnlage;
+import kreyj.sitzplatzreservierung.service.WagenlayoutKatalog;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Path("/api/v1/wagen")
@@ -28,10 +38,41 @@ public class WagenResource {
     @Inject
     SitzzuteilungService zuteilungService;
 
+    @Inject
+    WagenAnlage wagenAnlage;
+
+    @Inject
+    WagenlayoutKatalog katalog;
+
     @GET
     public List<WagenResponse> auflisten() {
         List<Wagen> wagen = Wagen.list("order by id");
         return wagen.stream().map(WagenResponse::von).toList();
+    }
+
+    /**
+     * Legt einen Wagen an; seine Sitzplätze werden aus dem gewählten Wagenlayout abgeleitet.
+     */
+    @POST
+    public Response anlegen(@Valid WagenAnlegenRequest request) {
+        return Response.status(Response.Status.CREATED).entity(WagenResponse.von(wagenAnlage.anlegen(request))).build();
+    }
+
+    /**
+     * Gezeichnete Draufsicht des Wagens aus seinem Layout (Umriss, Zonen, Tische, Plätze, Piktogramme); die Formen der Plätze
+     * tragen die Id des Sitzplatzes. Den Zustand der Plätze liefert der Sitzplan.
+     */
+    @GET
+    @Path("/{wagenId}/ansicht")
+    public Wagenansicht ansicht(@PathParam("wagenId") String wagenId) {
+        Wagen wagen = Wagen.findById(wagenId);
+        if (wagen == null) throw new WagenNichtGefundenException(wagenId);
+        if (wagen.layout == null) throw new UngueltigeAnfrageException("Wagen " + wagenId + " hat kein Wagenlayout.");
+
+        Map<String, PlatzBezug> plaetze = new HashMap<>();
+        for (Sitzplatz sitzplatz : Sitzplatz.<Sitzplatz>list("wagenId = ?1 and elementId is not null", wagenId))
+            plaetze.put(sitzplatz.elementId, new PlatzBezug(sitzplatz.id, sitzplatz.anzeigename(), sitzplatz.art.name().toLowerCase(Locale.ROOT)));
+        return Sitzplanzeichner.zeichne(katalog.layout(wagen.layout), plaetze);
     }
 
     @GET

@@ -8,13 +8,15 @@
 </head>
 <body>
 <header><h1>Sitzplatzreservierung</h1>
-  <nav><a href="index.html" aria-current="page">Reservieren</a><a href="szenarien.html">Szenarien</a><a href="wagenlayout.html">Wagenlayout</a></nav></header>
+  <nav><a href="index.html" aria-current="page">Reservieren</a><a href="szenarien.html">Szenarien</a></nav></header>
 <main>
   <div class="stack">
     <section aria-labelledby="h-req">
       <h2 id="h-req">Reservierungsanfrage</h2>
-      <label for="wagen">Wagen</label>
+      <label for="wagen">Wagen (Wagenlayout)</label>
       <select id="wagen"></select>
+      <label for="ebene" id="ebenel" hidden>Ebene</label>
+      <select id="ebene" hidden></select>
       <label for="from">Einstieg</label>
       <select id="from"></select>
       <label for="to">Ausstieg</label>
@@ -45,17 +47,16 @@
   <section aria-labelledby="h-sitzplan">
     <h2 id="h-sitzplan">Wagenplan</h2>
     <div class="route" id="route" aria-label="Strecke"></div>
-    <svg id="sitzplan" role="group" aria-label="Wagenplan"></svg>
+    <div class="scroll"><svg id="sitzplan" role="group" aria-label="Wagenplan"></svg></div>
     <div class="legend">
       <span><b style="background:var(--avail);border-color:var(--avail-stroke)"></b>verfügbar</span>
       <span><b style="background:var(--prop);border-color:var(--prop-stroke)"></b>Vorschlag / gewählt</span>
       <span><b style="background:var(--taken);border-color:var(--taken-stroke)"></b>belegt auf der Teilstrecke</span>
       <span><b style="background:var(--held);border-color:var(--held-stroke);border-style:dotted"></b>von anderer Anfrage vorgemerkt</span>
       <span><b style="background:var(--group);border-color:var(--group-stroke);border-style:dashed"></b>für Gruppen reserviert</span>
-      <span><b style="background:var(--other);border-color:var(--other-stroke)"></b>andere Zone</span>
-      <span><b style="background:var(--ruhe);border-color:var(--border)"></b>Ruhebereich (Zz)</span>
-      <span><b style="background:var(--kinder);border-color:var(--border)"></b>Kinderbereich (☺)</span>
-      <span>♿ Rollstuhlplatz &nbsp; 🚲 Fahrradstellplatz</span>
+      <span><b style="background:var(--other);border-color:var(--other-stroke)"></b>andere Zone, Sonderplatz nicht angefordert</span>
+      <span><b style="background:var(--ruhe);border-color:var(--border)"></b>Ruhebereich</span>
+      <span><b style="background:var(--kinder);border-color:var(--border)"></b>Familien- und Kleinkindbereich</span>
     </div>
   </section>
 </main>
@@ -206,11 +207,11 @@ function tick() {
 setInterval(tick, 500);
 
 $("sitzplan").addEventListener("click", (e) => {
-  const g = e.target.closest(".seat");
+  const g = e.target.closest(".platz");
   if (g) sitzUmschalten(g.dataset.id);
 });
 $("sitzplan").addEventListener("keydown", (e) => {
-  const g = e.target.closest(".seat");
+  const g = e.target.closest(".platz");
   if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); sitzUmschalten(g.dataset.id); }
 });
 
@@ -227,7 +228,7 @@ async function reservierungenAktualisieren() {
   const stops = state.wagen.halte;
   $("hist").innerHTML = list.length
     ? list.slice().reverse().map((r) => `<li><b>${r.gruppengroesse} ${r.gruppengroesse === 1 ? "Person" : "Personen"}</b> · ${stops[r.einstiegHalt]} → ${stops[r.ausstiegHalt]}
-        <small>Sitze ${r.sitzIds.join(", ")} · ${new Date(r.erstelltAm).toLocaleTimeString("de-DE")} · ${r.reservierungId.slice(0, 8)}</small></li>`).join("")
+        <small>Sitze ${r.sitzIds.map(kurz).join(", ")} · ${new Date(r.erstelltAm).toLocaleTimeString("de-DE")} · ${r.reservierungId.slice(0, 8)}</small></li>`).join("")
     : `<li class="empty">Noch keine Reservierungen.</li>`;
 }
 
@@ -241,7 +242,7 @@ $("btn-propose").addEventListener("click", () => guard(async () => {
   const sitzplan = await api(`/api/v1/wagen/${state.wagen.id}/vorschlag`, { method: "POST", body: JSON.stringify(request()) });
   streckeZeichnen();
   sitzplanUebernehmen(sitzplan);
-  if (sitzplan.vorgeschlagen.length) say(`Vorschlag: ${sitzplan.vorgeschlagen.join(", ")}. Sitze anklicken zum Ändern, dann bestätigen.`);
+  if (sitzplan.vorgeschlagen.length) say(`Vorschlag: ${sitzplan.vorgeschlagen.map(kurz).join(", ")}. Sitze anklicken zum Ändern, dann bestätigen.`);
   else say(sitzplan.meldung || "Kein Vorschlag.", "err");
 }));
 
@@ -254,7 +255,7 @@ $("btn-confirm").addEventListener("click", () => guard(async () => {
   state.vormerkToken = null;
   state.ablauf = null;
   state.gewaehlt.clear();
-  say(`Reserviert: ${res.sitzIds.join(", ")} (${state.wagen.halte[res.einstiegHalt]} → ${state.wagen.halte[res.ausstiegHalt]}).`, "ok");
+  say(`Reserviert: ${res.sitzIds.map(kurz).join(", ")} (${state.wagen.halte[res.einstiegHalt]} → ${state.wagen.halte[res.ausstiegHalt]}).`, "ok");
   await sitzplanAktualisieren(false);
   await reservierungenAktualisieren();
 }));
@@ -275,8 +276,11 @@ for (const id of ["to", "party", "quiet", "kids", "wheelchair", "bike", "when"])
 
 $("wagen").addEventListener("change", () => guard(() => wagenLaden($("wagen").value)));
 
+const kurz = (id) => Wagenplan.kurz(state.wagen.id, id);
+
 async function wagenLaden(id) {
   state.wagen = await api(`/api/v1/wagen/${id}`);
+  await Wagenplan.vorbereiten($("sitzplan"), id, $("ebene"));
   $("from").innerHTML = "";
   halteBefuellen();
   say("");
@@ -290,7 +294,9 @@ setInterval(() => { if (state.wagen && !document.hidden) sitzplanAktualisieren(t
 guard(async () => {
   const carriages = await api("/api/v1/wagen");
   $("wagen").innerHTML = carriages.map((c) => `<option value="${c.id}">${c.id} · ${c.zugnummer}</option>`).join("");
-  if (carriages.length) await wagenLaden(carriages[0].id);
+  /* Vorbelegung über die Adresse: ?wagen=... */
+  const start = carriages.find((c) => c.id === new URLSearchParams(location.search).get("wagen")) || carriages[0];
+  if (carriages.length) { $("wagen").value = start.id; await wagenLaden(start.id); }
   else say("Keine Wagen vorhanden.", "err");
 });
 </script>

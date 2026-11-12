@@ -34,7 +34,7 @@ ol.schritte li small { color: var(--muted); display: block; }
 </head>
 <body>
 <header><h1>Szenarien</h1>
-  <nav><a href="index.html">Reservieren</a><a href="szenarien.html" aria-current="page">Szenarien</a><a href="wagenlayout.html">Wagenlayout</a></nav></header>
+  <nav><a href="index.html">Reservieren</a><a href="szenarien.html" aria-current="page">Szenarien</a></nav></header>
 <main class="szenarien">
   <div class="stack">
     <section aria-labelledby="h-liste">
@@ -96,7 +96,8 @@ ol.schritte li small { color: var(--muted); display: block; }
         <select id="z-bis" aria-label="Ausstieg der Anzeige"></select>
       </div>
       <p id="status" class="status" role="status" aria-live="polite"></p>
-      <svg id="sitzplan" role="group" aria-label="Wagenplan"></svg>
+      <label for="ebene" id="ebenel" hidden>Ebene</label><select id="ebene" hidden style="width:auto"></select>
+      <div class="scroll"><svg id="sitzplan" role="group" aria-label="Wagenplan"></svg></div>
       <div class="legend">
         <span><b style="background:var(--avail);border-color:var(--avail-stroke)"></b>frei</span>
         <span><b style="background:var(--taken);border-color:var(--taken-stroke)"></b>belegt</span>
@@ -307,8 +308,11 @@ async function listeLaden(auswahlId) {
   $("liste").innerHTML = liste.map((s) => `<option value="${esc(s.id)}" ${s.id === auswahlId ? "selected" : ""}>${esc(s.name)} (${s.schritte} Schritte, ${esc(s.wagenId)})</option>`).join("");
 }
 
+const kurz = (id) => Wagenplan.kurz(state.wagen.id, id);
+
 async function wagenLaden(id) {
   state.wagen = await api(`/api/v1/wagen/${id}`);
+  await Wagenplan.vorbereiten($("sitzplan"), id, $("ebene"));
   $("z-von").innerHTML = optionen(state.wagen.halte.slice(0, -1), 0);
   fuelleBis();
 }
@@ -406,7 +410,7 @@ async function schrittAusfuehren(i) {
     const bezug = state.ergebnisse[bezugIndex];
     if (bezug && bezug.ok) {
       await api(`/api/v1/wagen/${w}/reservierungen/${bezug.reservierungId}`, { method: "DELETE" });
-      ergebnis = { ok: true, text: `Schritt ${bezugIndex + 1} storniert (${bezug.sitzIds.join(", ")})`, sitzIds: [] };
+      ergebnis = { ok: true, text: `Schritt ${bezugIndex + 1} storniert (${bezug.sitzIds.map(kurz).join(", ")})`, sitzIds: [] };
     }
     else ergebnis = { ok: false, text: `Schritt ${bezugIndex + 1} war nicht erfolgreich, nichts zu stornieren`, sitzIds: [] };
   }
@@ -417,7 +421,7 @@ async function schrittAusfuehren(i) {
       const res = await api(`/api/v1/wagen/${w}/bestaetigung`, { method: "POST",
         body: JSON.stringify({ sitzIds: plan.vorgeschlagen, einstiegHalt: s.anfrage.einstiegHalt, ausstiegHalt: s.anfrage.ausstiegHalt,
           vormerkToken: plan.vormerkToken, anfragezeitpunkt: s.anfrage.anfragezeitpunkt }) });
-      ergebnis = { ok: true, text: "reserviert: " + res.sitzIds.join(", "), sitzIds: res.sitzIds, reservierungId: res.reservierungId };
+      ergebnis = { ok: true, text: "reserviert: " + res.sitzIds.map(kurz).join(", "), sitzIds: res.sitzIds, reservierungId: res.reservierungId };
     }
   }
   ergebnis.kennzahlen = await api(`/api/v1/wagen/${w}/kennzahlen`);

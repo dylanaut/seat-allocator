@@ -1,8 +1,8 @@
 Seat Allocator - Demo
 =====================
 
-Eigenständige Demo-Anwendung mit eingebetteter H2-Datenbank und Testdaten (Wagen W1, ICE 101,
-Hamburg - Hannover - Frankfurt - München). Die Datenbank liegt im Arbeitsspeicher und wird bei jedem Start
+Eigenständige Demo-Anwendung mit eingebetteter H2-Datenbank und je einem Demo-Wagen pro Wagenlayout
+(Beispiel-Klein, Beispiel-Mittel, Beispiel-Gross; Hamburg - Hannover - Frankfurt - München). Die Datenbank liegt im Arbeitsspeicher und wird bei jedem Start
 neu angelegt; Reservierungen gehen beim Beenden verloren.
 
 Voraussetzung: Java 21 oder neuer (JRE reicht).
@@ -24,7 +24,7 @@ Optionen (Umgebungsvariablen)
 
 Eigene Wagenlayouts
   Legen Sie einen Ordner "layouts" neben start.sh an und kopieren Sie Layout-Dateien (<Kennung>.json) hinein.
-  Beim nächsten Start erscheinen sie zusätzlich zu den Beispielen unter http://localhost:8080/wagenlayout.html.
+  Beim nächsten Start erscheinen sie zusätzlich zu den Beispielen in der Auswahl Wagen auf http://localhost:8080/ (je Layout ein Wagen).
   Ein anderer Ordner lässt sich mit WAGENLAYOUTS_VERZEICHNIS angeben.
 
 Der Ordner "szenarien" enthält gespeicherte Szenarien (JSON-Dateien); er wird relativ zu diesem Verzeichnis gelesen.

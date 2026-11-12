@@ -665,15 +665,14 @@ public class SitzzuteilungService {
     }
 
     /**
-     * Metrik für geometrische Nähe im Zugwaggon (2+2 Layout).
+     * Metrik für geometrische Nähe im Zugwaggon; Reihe, Spalte und Gangseite stammen aus dem Layout.
      */
     private double nachbarschaftsabstand(Sitzplatz a, Sitzplatz b) {
         int reihenDifferenz = Math.abs(a.reihe - b.reihe);
         int spaltenDifferenz = Math.abs(a.spalte - b.spalte);
 
         // Gleiche Reihe, nebeneinander auf derselben Gangseite (z.B. A-B oder C-D)
-        if (reihenDifferenz == 0 && spaltenDifferenz == 1 && ((a.spalte == 0 && b.spalte == 1) || (a.spalte == 2 && b.spalte == 3)
-                || (a.spalte == 1 && b.spalte == 0) || (a.spalte == 3 && b.spalte == 2))) {
+        if (reihenDifferenz == 0 && spaltenDifferenz == 1 && a.seite() == b.seite()) {
             return 1.0;
         }
 

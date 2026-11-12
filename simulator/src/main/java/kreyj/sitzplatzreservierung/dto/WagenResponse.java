@@ -4,9 +4,9 @@ import kreyj.sitzplatzreservierung.model.Wagen;
 
 import java.util.List;
 
-public record WagenResponse(String id, String zugnummer, List<String> halte) {
+public record WagenResponse(String id, String zugnummer, String layout, List<String> halte) {
 
     public static WagenResponse von(Wagen wagen) {
-        return new WagenResponse(wagen.id, wagen.zugnummer, wagen.halteNamen());
+        return new WagenResponse(wagen.id, wagen.zugnummer, wagen.layout, wagen.halteNamen());
     }
 }

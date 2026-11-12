@@ -739,13 +739,14 @@ Unter `/` (`META-INF/resources/index.html`, ohne Build-Tooling) liegt eine Einze
 . *Bestätigen* ruft `bestaetigung` auf; der Server prüft unter dem Wagen-Lock erneut. Danach sind die Sitze auf dieser Teilstrecke für folgende Anfragen belegt, auf nicht überlappenden Teilstrecken bleiben sie frei.
 . Die Liste zeigt die Reservierungen; *Alle zurücksetzen* löscht sie für den Wagen.
 
-Der Wagenplan zeigt Ruhe- und Kinderbereich als getönte, beschriftete Bänder, sowie die Rollstuhlplätze und Fahrradstellplätze mit eigenen Symbolen in den Endreihen.
+Der Wagenplan ist die Draufsicht des Wagenlayouts (siehe <<wagenlayout>>): Wagenumriss, Zonen, Tische, Sitzplätze mit Rückenlehne und Piktogramme, etwa für Rollstuhlplatz, Fahrradstellplatz, Kinderwagen und Gepäck. Der Zustand eines Platzes für die gewählte Teilstrecke färbt ihn ein (verfügbar, belegt, vorgemerkt, für Gruppen reserviert, andere Zone, gewählt); Mouseover hebt den Platz hervor und zeigt Platz, Zustand und Zone als Tooltip. Bei einem Doppelstockwagen schaltet die Auswahl *Ebene* zwischen Ober-, Haupt- und Unterdeck um. Die Seite nimmt `?wagen=<Id>` zur Vorbelegung entgegen.
 
-Der Demo-Wagen `W1` (ICE 101, Hamburg-Hannover-Frankfurt-München) kommt aus `import.sql`: Reihe 0 und 11 Sonderplätze (je ein Rollstuhl- und Fahrradstellplatz), Reihe 1 Ruhebereich, Gruppenbereich in den Reihen 4-7, Reihe 10 Kinderbereich. Sein Gruppenkontingent auf Reihe 4 läuft bis 2030-01-01.
+Beim Start legt die Anwendung für jedes Wagenlayout des Katalogs einen Demo-Wagen mit derselben Id an (Hamburg-Hannover-Frankfurt-München, Gruppenkontingent bis 2030-01-01), sofern es ihn noch nicht gibt; `wagen.demo.anlegen=false` schaltet das ab. Eine Datei `import.sql` gibt es nicht mehr.
 
+[[wagenlayout]]
 == Wagenlayout (Draufsicht)
 
-Unter `/wagenlayout.html` (`META-INF/resources/wagenlayout.html` mit `wagenlayout.css`) zeigt der Simulator die Wagenlayouts aus den RISMAPS-Dateien als Draufsicht samt Belegung je Fahrtabschnitt. Die Geometrie berechnet der Server; die Seite gibt nur die gelieferten Formen als SVG-Pfade mit Stilklassen aus.
+Die Sitzplätze eines Wagens stammen aus einem Wagenlayout, einer RISMAPS-Datei im Katalog. Der Wagen ergibt sich aus der Auswahl des Layouts: Beim Anlegen werden die Plätze in der Datenbank erzeugt, die Draufsicht zeichnet der Server aus demselben Layout. Der Client (`wagenplan.js`) baut die gelieferten Formen als SVG-Pfade mit Stilklassen einmal je Wagen auf und überträgt danach nur noch Zustand und Auswahl der Plätze als Stilklassen.
 
 === Modell und Import
 
@@ -756,41 +757,52 @@ Das Paket `kreyj.sitzplatzreservierung.layout` enthält ein unveränderliches Mo
 * `RismapsImport` überführt die GeoJSON-FeatureCollection (Grad) in dieses Modell in Metern. Nullpunkt ist die obere linke Ecke der `bbox`, die y-Achse wird gespiegelt, Koordinaten werden auf Zentimeter gerundet. Features ohne Geometrie werden übersprungen, unbekannte Arten fallen auf `SONSTIGE`.
 * `WagenlayoutKatalog` kennt die Layouts im Verzeichnis `rismaps/layouts/by-layout` über die Datei `index.txt`, weil sich Verzeichnisse in einem Jar nicht zuverlässig auflisten lassen. Ein Test stellt sicher, dass der Index zu den JSON-Dateien passt. Eigene Layouts legt man als `<Kennung>.json` dort ab und trägt die Kennung in `index.txt` ein. Ohne Eingriff in das Jar geht es über `wagenlayouts.verzeichnis` (z. B. `java -Dwagenlayouts.verzeichnis=./layouts -jar ...`): Alle `*.json`-Dateien dieses Ordners erscheinen zusätzlich, ohne Eintrag in `index.txt`; bei gleicher Kennung hat die Datei im Ordner Vorrang vor dem mitgelieferten Beispiel. Die Kennung darf nur Buchstaben, Ziffern, `.`, `_` und `-` enthalten und nicht mit `.` beginnen. Das Verzeichnis wird beim ersten Zugriff gelesen, neue Dateien erfordern einen Neustart.
 * Mitgeliefert sind drei synthetische Beispiel-Layouts im selben Format: `Beispiel-Klein` (13,3 m, 27 Sitze: Grundausstattung mit Wänden, Fenstern, allen drei Öffnungsarten, WC, Rollstuhlbereich, Tischgruppen und einem Personalsitz ohne Platznummer), `Beispiel-Mittel` (26,4 m, 48 Sitze: erste Klasse, Familien-, Kleinkind- und Ruhebereich, Fahrrad, Kinderwagen, Gepäck, Klappsitze, Dienstabteil und Führerstand) und `Beispiel-Gross` (26,9 m, 87 Sitze: Doppelstock mit Ober-, Haupt- und Unterdeck, Treppen, Bistro, Küche und Restaurant). Zusammen zeigen sie alle Elementarten, Zonen, Klassen, Bauarten, Sitzmerkmale, Ebenen und Piktogramme; `BeispielLayoutsTest` prüft das.
+* Zusätzlich liegt das Layout `I8080-402` (ICE-2-Wagen, 56 Sitze) im Katalog; es ist kein synthetisches Beispiel, sondern eine Originaldatei im selben Format.
 
-=== Belegung je Fahrtabschnitt
+=== Plätze aus dem Layout
 
-Ein `Fahrtabschnitt(vonHalt, nachHalt)` ist ein Halbintervall über die Halteindizes einer Zugfahrt. Zwei Abschnitte überschneiden sich genau dann, wenn `a.vonHalt < b.nachHalt` und `b.vonHalt < a.nachHalt`; aneinandergrenzende Abschnitte kollidieren nicht. Der unveränderliche `Belegungsplan` hält die `Belegung`en (`RESERVIERT`, `VORGEMERKT`, `GESPERRT`) und liefert je Sitzplatz einen `Platzzustand` für den gewählten Abschnitt: `FREI`, `TEILWEISE`, `VORGEMERKT`, `BELEGT` oder `GESPERRT`. Decken die Belegungen gemeinsam jeden Halteabschnitt der Anfrage ab, gilt die Rangfolge Sperre vor Reservierung vor Vormerkung, andernfalls `TEILWEISE`. Der `BelegungsSpeicher` hält die Pläne je Zugfahrt im Speicher; die Halte sind für alle Zugfahrten dieselben Demo-Halte (Hamburg, Hannover, Frankfurt, München). Diese Belegung ist unabhängig von den Reservierungen der Entität `Sitzreservierung`.
+`WagenAnlage` legt einen Wagen samt Sitzplätzen an; `PlatzAbleitung` leitet die Plätze aus dem Layout ab:
+
+* Jeder Sitz mit Platznummer, der nicht nur für Personal ist, wird ein Platz der Art `SITZ`. Die Id ist `<Wagen-Id>-<Nummer>`, die Bezeichnung die Platznummer.
+* Jede Fläche der Art `ROLLSTUHL` oder `FAHRRAD` wird ein Sonderplatz (`<Wagen-Id>-RS1`, `<Wagen-Id>-FR1` und so weiter). Ein Layout ohne solche Fläche hat keinen Sonderplatz dieser Art.
+* Die Zone folgt dem Layout: `RUHE` bleibt Ruhebereich, `FAMILIE` und `KLEINKIND` bilden den Kinderbereich, alles andere ist Standard.
+* Reihe, Spalte und Gangseite ergeben sich aus der Lage der Sitze: Sitze, deren Mitten in Längsrichtung weniger als 12 cm auseinander liegen, bilden eine Reihe; die Spalte ist die Stelle des Sitzes in seiner Reihe von oben nach unten; der größte Abstand zwischen zwei Sitzspalten ist der Gang und trennt die Gangseiten. Die Reihen jeder Ebene eines Doppelstockwagens liegen 1000 Reihen auseinander, damit Sitze verschiedener Ebenen nie als benachbart gelten. Die Zuteilung bewertet Nachbarschaft über Reihe, Spalte und Gangseite.
+* Mit `gruppenkontingent` entsteht für die Tischgruppe mit den meisten Sitzen ein Gruppenkontingent (Id `<Wagen-Id>-GRP-01`, Freigabefrist 2030-01-01). Eine Tischgruppe sind die Sitze bis 60 cm Abstand von einem langen oder kurzen Tisch, mindestens vier. Ohne solche Gruppe entsteht kein Kontingent.
+
+Das Layout selbst bleibt unverändert; Belegungen, Vormerkungen und Kontingente liegen wie bisher in der Datenbank (`Sitzreservierung`, `Vormerkung`, `Gruppenkontingent`).
 
 === Zeichner und REST-API
 
-`Wagenzeichner` liefert eine `Wagenansicht` aus `Form`en in Zeichenreihenfolge. Eine `Form` trägt den SVG-Pfad in Metern, Stilklassen (zum Beispiel `schicht-sitz`, `sitz`, `farbe-erste`, `zustand-belegt`), optional Beschriftung und Piktogramm sowie Details für die Anzeige. Sitze entstehen aus Sitzfläche und Rückenlehne mit Armlehnen; Türen, Fenster- und Gangmarken, Steckdosen und Leseleuchten berechnet der Zeichner. Die Färbung der Sitze (`Sitzfaerbung`) ist `STANDARD`, `KLASSE` oder `BEREICH`.
+`Sitzplanzeichner` zeichnet das Layout reduziert auf Wagenumriss, Zonen, Tische, Plätze und Piktogramme. Wände, Fenster, Türen, Einbauten und Elemente nur für Personal gehören nicht zur Platzwahl. Das Ergebnis, eine `Wagenansicht`, besteht aus `Form`en in Zeichenreihenfolge (`schicht-kontur`, `schicht-zone`, `schicht-tisch`, `schicht-platz`, `schicht-icon`). Eine `Form` trägt den SVG-Pfad in Metern, Stilklassen, optional Beschriftung und Piktogramm sowie Details für die Anzeige. Sitze bestehen aus Sitzfläche (Klasse `platz`) und Rückenlehne mit Armlehnen (`platz-lehne`); Rollstuhl- und Fahrradflächen sind Plätze mit Piktogramm. Die Form eines Platzes trägt die Id des Sitzplatzes, sodass der Client den Zustand aus dem Sitzplan zuordnen kann. Sitze ohne Platz im Wagen (zum Beispiel ohne Nummer) sind als `platz-gesperrt` gezeichnet.
 
 [cols="1,2,3", options="header"]
 |===
 | Methode | Pfad | Beschreibung
 
 | GET
+| `/api/v1/wagen`
+| Wagen mit Zugnummer, Layout und Halten
+
+| POST
+| `/api/v1/wagen`
+| Legt einen Wagen an: `layout` (Kennung, Pflicht), optional `id` (Standard: Kennung), `zugnummer`, `halte` (mindestens zwei) und `gruppenkontingent`. 201; 404 bei unbekanntem Layout, 400 bei vorhandener Id oder ungültigen Angaben.
+
+| GET
+| `/api/v1/wagen/\{wagenId}/ansicht`
+| Gezeichnete Draufsicht des Wagens aus seinem Layout; ohne Zustand, den liefert der Sitzplan.
+
+| GET
+| `/api/v1/wagen/\{wagenId}/sitzplan`
+| Sitzplan mit Zustand, Art, Zone und Bezeichnung je Platz (siehe Reservierung)
+
+| GET
 | `/api/v1/wagenlayouts`
 | Layouts mit Kennung, Maßen, Anzahl Sitzplätze und Ebenen
 
 | GET
-| `/api/v1/wagenlayouts/\{kennung}/ansicht`
-| Gezeichnete Ansicht; Parameter `von` und `nach` (Halteindizes, nur zusammen), `faerbung` und `zugfahrt` (Standard `demo`). Mit `von` und `nach` enthält jeder Sitz seinen Zustand für den Abschnitt.
-
-| GET / POST
-| `/api/v1/wagenlayouts/\{kennung}/belegungen`
-| Belegungen lesen bzw. anlegen (`sitzNummer`, `vonHalt`, `nachHalt`, optional `reservierungId` und `art`); 409 bei Überschneidung, 400 bei unbekanntem Platz oder ungültigem Abschnitt
-
-| DELETE
-| `/api/v1/wagenlayouts/\{kennung}/belegungen/\{reservierungId}`
-| Gibt alle Belegungen der Reservierung frei; 404, wenn unbekannt
-
-| GET
-| `/api/v1/wagenlayouts/piktogramme`, `/api/v1/wagenlayouts/halte`
-| SVG-Inhalt der Piktogramme bzw. die Halte der Zugfahrt
+| `/api/v1/wagenlayouts/piktogramme`
+| SVG-Inhalt der Piktogramme (24er-Raster) nach Name
 |===
-
-Die Seite bietet Auswahl von Layout, Ebene, Von- und Nach-Halt und Sitzfärbung, schaltet Schichten (Zonen, Flächen, Sitzbereiche, Sitzmerkmale, Ausstattung, Zeichenhilfen) und Personalelemente um und reserviert den angeklickten Sitzplatz für den gewählten Abschnitt. Die Belegungsliste erlaubt das Freigeben. Die Adresse nimmt die Parameter `layout` (Kennung), `ebene` (`OBERDECK`, `HAUPTEBENE`, `UNTERDECK`) und `faerbung` (`STANDARD`, `KLASSE`, `BEREICH`) zur Vorbelegung entgegen, zum Beispiel `/wagenlayout.html?layout=Beispiel-Gross&ebene=UNTERDECK`.
 
 [[abgleich]]
 == Abgleich Dokument und Code (Stand 2026-11-04)
@@ -799,10 +811,12 @@ Die fachlichen Begriffe (Entitäten, Service-Methoden, Zustände, REST-API, Date
 
 === Tests
 
-* `WagenlayoutResourceTest`: Layoutübersicht, Piktogramme und Halte, Ansicht mit und ohne Fahrtabschnitt, Belegen mit 409 bei Überschneidung, Freigeben (204, danach 404), Validierung von Platz und Abschnitt.
-* `RismapsImportTest`, `WagenzeichnerTest`, `BelegungsplanTest`, `WagenlayoutKatalogTest`: Import aller Beispiel-Layouts, Umrechnung in Meter, Ebenen, Lehnenrichtung und Zustandsklassen, Halbintervalle und Rangfolge der Belegungsarten, Index und Laden aus einem Jar.
-* `BeispielLayoutsTest`: Die drei Beispiel-Layouts decken zusammen alle Tisch-, Einbau-, Bereichs-, Tür- und Ausstattungsarten, Zonen, Klassen, Bauarten, Sitzmerkmale, Ebenen und Piktogramme ab.
-* `SitzplatzResourceTest`: Ruhezone, Kontingentschutz für Einzelplatz, Gruppe n=3, unbekannter Wagen (404).
+* `WagenAusLayoutTest`: Wagen je Layout beim Start, Ansicht des Wagens, Anlegen per POST mit Reservieren und Gruppenkontingent, ungültige Anfragen (400, 404), Layoutübersicht und Piktogramme.
+* `PlatzAbleitungTest`: Plätze, Sonderplätze, Zonen, Reihe, Spalte und Gangseite sowie Gruppenkontingent der drei Beispiel-Layouts.
+* `SitzplanzeichnerTest`: nur Umriss, Zonen, Tische, Plätze und Piktogramme; Plätze tragen die Id des Platzes; Personal wird nicht gezeichnet.
+* `RismapsImportTest`, `WagenlayoutKatalogTest`: Import aller Beispiel-Layouts, Umrechnung in Meter, Ebenen und Lehnenrichtung, Index, Laden aus einem Jar und aus einem Verzeichnis.
+* `BeispielLayoutsTest`: Die drei Beispiel-Layouts decken zusammen alle Tisch-, Einbau-, Bereichs-, Tür- und Ausstattungsarten, Zonen, Klassen, Bauarten, Sitzmerkmale und Ebenen ab; alle Piktogramme der Platzwahl werden gezeichnet.
+* `SitzplatzResourceTest` (Wagen Beispiel-Mittel): Ruhezone, Kontingentschutz für Einzelplatz, Gruppe n=3, unbekannter Wagen (404).
 * `ReservierungsablaufTest`: Vorschlag bucht nicht (merkt nur vor), Bestätigung bucht und blockiert Folgeanfragen (409), Sitzplatz auf nicht überlappenden Teilstrecken wiederverwendbar, Sitzplan je Teilstrecke, Zurücksetzen, 400/404.
 * `VormerkungTest`: Vorschläge merken Sitzplätze für andere vor (inklusive direktem `zuteilen`), Sicht von Vormerkendem und Fremden, Bestätigung fremd vorgemerkter Sitzplätze (409), manuelles Umwählen und Freigeben.
 * `VormerkungAblaufTest` (Profil mit 1 s Vormerkdauer): Sitzplatz wird nach Ablauf wieder frei und buchbar.
